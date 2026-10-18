@@ -1,25 +1,15 @@
 abstract final class ApiConstants {
-  /// Override per build: `--dart-define=IS_APP_LIVE=true`.
-  static const bool isAppLive = bool.fromEnvironment('IS_APP_LIVE');
+  static const bool isAppLive = false;
 
-  /// Override with `--dart-define=STAGING_API_BASE_URL=http://10.0.2.2:8080`
-  /// to reach a backend on the host machine from the Android emulator.
-  static const String stagingApiBaseUrl = String.fromEnvironment(
-    'STAGING_API_BASE_URL',
-    defaultValue: 'https://currency-monitor-exchange-app-backend.onrender.com',
-  );
-
-  /// `--dart-define=LIVE_API_BASE_URL=https://...`. No default on purpose: a
-  /// release build must not silently talk to a guessed host.
-  static const String liveApiBaseUrl = String.fromEnvironment(
-    'LIVE_API_BASE_URL',
-  );
+  static const String stagingApiBaseUrl =
+      'https://currency-monitor-exchange-app-backend.onrender.com';
+  static const String liveApiBaseUrl =
+      'https://currency-monitor-exchange-app-backend.onrender.com';
 
   static const String baseUrl = isAppLive ? liveApiBaseUrl : stagingApiBaseUrl;
 
-  // Generous: a free-tier Render instance can take a minute to wake up.
-  static const Duration connectTimeout = Duration(seconds: 30);
-  static const Duration receiveTimeout = Duration(seconds: 60);
+  static const Duration connectTimeout = Duration(seconds: 15);
+  static const Duration receiveTimeout = Duration(seconds: 20);
 
   static const String otpSend = '/api/v1/auth/otp/send';
   static const String otpVerify = '/api/v1/auth/otp/verify';
