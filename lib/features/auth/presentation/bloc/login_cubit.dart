@@ -77,7 +77,9 @@ class LoginCubit extends Cubit<LoginState> {
   Future<void> continueWithEmail(String input) async {
     if (_busy) return; // ignore repeated taps
     if (input.trim().isEmpty) {
-      emit(const LoginFailed('Enter your email address', isEmailFieldError: true));
+      emit(
+        const LoginFailed('Enter your email address', isEmailFieldError: true),
+      );
       return;
     }
     final contact = EmailContact.tryParse(input);

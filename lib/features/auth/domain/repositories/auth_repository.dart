@@ -11,9 +11,9 @@ abstract class AuthRepository {
   /// the backend rejecting the refresh token (null = signed out).
   Stream<AuthSession?> get sessionChanges;
 
-  /// Loads the persisted session, renewing the access token if it expired.
-  /// Returns null when there is no usable session. A network error while
-  /// renewing keeps the session (the user stays signed in offline).
+  /// Loads the persisted session from secure storage. Makes no network call:
+  /// an expired access token is renewed lazily on the first authenticated
+  /// request, and a rejected refresh token signs the user out at that point.
   Future<AuthSession?> restoreSession();
 
   Future<Either<Failure, OtpChallenge>> sendOtp(ContactIdentifier contact);

@@ -46,22 +46,34 @@ class LoginPage extends StatelessWidget {
           return Scaffold(
             backgroundColor: Colors.black,
             resizeToAvoidBottomInset: true,
-            body: Column(
-              children: [
-                const Expanded(child: _HeroSection()),
-                AuthBottomSheet(
-                  isContinueLoading:
-                      state is LoginLoading && state.method == LoginMethod.email,
-                  isGoogleLoading:
-                      state is LoginLoading &&
-                      state.method == LoginMethod.google,
-                  emailError: state is LoginFailed && state.isEmailFieldError
-                      ? state.message
-                      : null,
-                  onContinue: cubit.continueWithEmail,
-                  onGoogle: cubit.continueWithGoogle,
-                ),
-              ],
+            body: LayoutBuilder(
+              builder: (context, constraints) => Column(
+                children: [
+                  const Expanded(child: _HeroSection()),
+                  // The sheet scrolls internally if it ever needs more than this
+                  // (large text, small screen, keyboard open) instead of
+                  // overflowing the page.
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: constraints.maxHeight * 0.85,
+                    ),
+                    child: AuthBottomSheet(
+                      isContinueLoading:
+                          state is LoginLoading &&
+                          state.method == LoginMethod.email,
+                      isGoogleLoading:
+                          state is LoginLoading &&
+                          state.method == LoginMethod.google,
+                      emailError:
+                          state is LoginFailed && state.isEmailFieldError
+                          ? state.message
+                          : null,
+                      onContinue: cubit.continueWithEmail,
+                      onGoogle: cubit.continueWithGoogle,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -86,30 +98,48 @@ class _HeroSection extends StatelessWidget {
       ),
       child: SafeArea(
         bottom: false,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                const SizedBox(height: 80),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    'TRACK THE BEST RATE\nON EVERY EXCHANGE',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 30,
-                      height: 1.25,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFFFFF7E8),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final height = constraints.maxHeight;
+            // Everything is sized from the space actually available, and
+            // pieces drop out entirely when there is not enough room (small
+            // phones, keyboard open) so nothing can overflow.
+            final topGap = (height * 0.1).clamp(12.0, 80.0);
+            final showTitle = height >= 150;
+            final titleHeight = showTitle ? 80.0 : 0.0;
+            final badgeSpace = height - topGap - titleHeight - 16;
+            final badgeSize = badgeSpace.clamp(0.0, 190.0) * 0.9;
+            final showBadge = badgeSize >= 80;
+
+            return ClipRect(
+              child: Column(
+                children: [
+                  SizedBox(height: topGap),
+                  if (showTitle)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'TRACK THE BEST RATE\nON EVERY EXCHANGE',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 30,
+                            height: 1.25,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFFFF7E8),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const Expanded(child: Center(child: _CoinBadge())),
-                const _PageDots(),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ],
+                  if (showBadge)
+                    Expanded(
+                      child: Center(child: _CoinBadge(size: badgeSize)),
+                    ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
@@ -117,13 +147,15 @@ class _HeroSection extends StatelessWidget {
 }
 
 class _CoinBadge extends StatelessWidget {
-  const _CoinBadge();
+  const _CoinBadge({required this.size});
+
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 190,
-      height: 190,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: const LinearGradient(
@@ -133,43 +165,15 @@ class _CoinBadge extends StatelessWidget {
         ),
         border: Border.all(color: const Color(0xFF9CC2F0), width: 4),
         boxShadow: const [
-          BoxShadow(
-            color: Color(0x663B82F6),
-            blurRadius: 50,
-            spreadRadius: 4,
-          ),
+          BoxShadow(color: Color(0x663B82F6), blurRadius: 50, spreadRadius: 4),
         ],
       ),
       alignment: Alignment.center,
-      child: const Icon(
+      child: Icon(
         Icons.currency_exchange_rounded,
-        size: 96,
+        size: size * 0.5,
         color: Color(0xFFFBEBD3),
       ),
-    );
-  }
-}
-
-class _PageDots extends StatelessWidget {
-  const _PageDots();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(5, (i) {
-        final active = i == 1;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: active ? 26 : 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: active ? Colors.white : Colors.white38,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        );
-      }),
     );
   }
 }

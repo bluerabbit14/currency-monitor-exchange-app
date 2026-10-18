@@ -62,15 +62,17 @@ void main() {
   });
 
   group('LoginCubit', () {
-    LoginCubit make() =>
-        LoginCubit(SendOtp(repo), SignInWithGoogle(repo));
+    LoginCubit make() => LoginCubit(SendOtp(repo), SignInWithGoogle(repo));
 
     test('invalid email is rejected inline without a request', () async {
       final cubit = make();
       await cubit.continueWithEmail('nope');
       expect(
         cubit.state,
-        const LoginFailed('Enter a valid email address', isEmailFieldError: true),
+        const LoginFailed(
+          'Enter a valid email address',
+          isEmailFieldError: true,
+        ),
       );
       await cubit.continueWithEmail('   ');
       expect(
@@ -108,21 +110,28 @@ void main() {
 
       gate.complete(const Left(NetworkFailure()));
       await first;
-      expect(cubit.state, const LoginFailed('Unable to reach the server. Check your connection'));
+      expect(
+        cubit.state,
+        const LoginFailed('Unable to reach the server. Check your connection'),
+      );
     });
 
     test('send failure surfaces the message', () async {
-      repo.onSend = (_) async => const Left(ServerFailure('Service temporarily unavailable'));
+      repo.onSend = (_) async =>
+          const Left(ServerFailure('Service temporarily unavailable'));
       final cubit = make();
       await cubit.continueWithEmail('a@b.co');
       expect(cubit.state, const LoginFailed('Service temporarily unavailable'));
     });
 
-    test('google: signed in returns to idle (app routes via session)', () async {
-      final cubit = make();
-      await cubit.continueWithGoogle();
-      expect(cubit.state, const LoginIdle());
-    });
+    test(
+      'google: signed in returns to idle (app routes via session)',
+      () async {
+        final cubit = make();
+        await cubit.continueWithGoogle();
+        expect(cubit.state, const LoginIdle());
+      },
+    );
 
     test('google: link required hands over the link details', () async {
       const link = GoogleLinkRequired(
@@ -193,7 +202,8 @@ void main() {
     });
 
     test('wrong code shows the backend message', () async {
-      repo.onVerify = (_, _) async => const Left(ServerFailure('Invalid or expired OTP.'));
+      repo.onVerify = (_, _) async =>
+          const Left(ServerFailure('Invalid or expired OTP.'));
       final cubit = make(ContactOtpFlow(contact));
       await cubit.submit('000000');
       expect(cubit.state.error, 'Invalid or expired OTP.');
@@ -264,27 +274,30 @@ void main() {
       await cubit.close();
     });
 
-    test('google link flow verifies with the link token and has no resend', () async {
-      String? seen;
-      repo.onLink = (t, o) async {
-        seen = '$t:$o';
-        return Right(fakeSignIn);
-      };
-      final cubit = make(
-        const GoogleLinkOtpFlow(
-          linkToken: 'link-1',
-          maskedEmail: 'u***@x.com',
-          expiresInSeconds: 300,
-        ),
-      );
-      expect(cubit.canResend, isFalse);
-      expect(cubit.state.resendInSeconds, 0);
-      await cubit.resend();
-      expect(repo.sent, isEmpty);
+    test(
+      'google link flow verifies with the link token and has no resend',
+      () async {
+        String? seen;
+        repo.onLink = (t, o) async {
+          seen = '$t:$o';
+          return Right(fakeSignIn);
+        };
+        final cubit = make(
+          const GoogleLinkOtpFlow(
+            linkToken: 'link-1',
+            maskedEmail: 'u***@x.com',
+            expiresInSeconds: 300,
+          ),
+        );
+        expect(cubit.canResend, isFalse);
+        expect(cubit.state.resendInSeconds, 0);
+        await cubit.resend();
+        expect(repo.sent, isEmpty);
 
-      await cubit.submit('654321');
-      expect(seen, 'link-1:654321');
-      await cubit.close();
-    });
+        await cubit.submit('654321');
+        expect(seen, 'link-1:654321');
+        await cubit.close();
+      },
+    );
   });
 }

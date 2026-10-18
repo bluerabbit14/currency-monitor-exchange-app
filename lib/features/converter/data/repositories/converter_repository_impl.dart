@@ -17,9 +17,7 @@ class ConverterRepositoryImpl implements ConverterRepository {
     required String to,
   }) async {
     try {
-      return Right(
-        localDataSource.convert(amount: amount, from: from, to: to),
-      );
+      return Right(localDataSource.convert(amount: amount, from: from, to: to));
     } on ConversionException catch (error) {
       return Left(ConversionFailure(error.message));
     }

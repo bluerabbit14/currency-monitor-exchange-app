@@ -24,8 +24,9 @@ class _Tokens implements TokenProvider {
 }
 
 ApiClient _authed(FakeAdapter adapter, _Tokens tokens) {
-  final dio = Dio(BaseOptions(baseUrl: 'http://test', validateStatus: (_) => true))
-    ..httpClientAdapter = adapter;
+  final dio = Dio(
+    BaseOptions(baseUrl: 'http://test', validateStatus: (_) => true),
+  )..httpClientAdapter = adapter;
   return ApiClient.authenticated(tokens, dio: dio);
 }
 
@@ -40,47 +41,56 @@ void main() {
     expect(await client.post('/x'), isNull);
   });
 
-  test('error envelope becomes ApiException with code and field errors', () async {
-    final client = clientFor(
-      FakeAdapter(
-        (_) => apiError(
-          400,
-          'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: [
-            {'field': 'contact', 'message': 'Contact is required'},
-          ],
+  test(
+    'error envelope becomes ApiException with code and field errors',
+    () async {
+      final client = clientFor(
+        FakeAdapter(
+          (_) => apiError(
+            400,
+            'Validation failed',
+            code: 'VALIDATION_FAILED',
+            details: [
+              {'field': 'contact', 'message': 'Contact is required'},
+            ],
+          ),
         ),
-      ),
-    );
+      );
 
-    await expectLater(
-      client.post('/x'),
-      throwsA(
-        isA<ApiException>()
-            .having((e) => e.statusCode, 'status', 400)
-            .having((e) => e.code, 'code', 'VALIDATION_FAILED')
-            .having((e) => e.fieldErrors, 'fields', {
-              'contact': 'Contact is required',
-            }),
-      ),
-    );
-  });
+      await expectLater(
+        client.post('/x'),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.statusCode, 'status', 400)
+              .having((e) => e.code, 'code', 'VALIDATION_FAILED')
+              .having((e) => e.fieldErrors, 'fields', {
+                'contact': 'Contact is required',
+              }),
+        ),
+      );
+    },
+  );
 
-  test('non-JSON error (proxy / gateway page) still yields an ApiException', () async {
-    final client = clientFor(
-      FakeAdapter((_) => ResponseBody.fromString('<html>Bad gateway</html>', 502)),
-    );
-    await expectLater(
-      client.post('/x'),
-      throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 502)),
-    );
-  });
+  test(
+    'non-JSON error (proxy / gateway page) still yields an ApiException',
+    () async {
+      final client = clientFor(
+        FakeAdapter(
+          (_) => ResponseBody.fromString('<html>Bad gateway</html>', 502),
+        ),
+      );
+      await expectLater(
+        client.post('/x'),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 502)),
+      );
+    },
+  );
 
   test('connection failures become NetworkException', () async {
     final client = clientFor(
       FakeAdapter(
-        (o) => throw DioException.connectionError(requestOptions: o, reason: 'x'),
+        (o) =>
+            throw DioException.connectionError(requestOptions: o, reason: 'x'),
       ),
     );
     await expectLater(client.post('/x'), throwsA(isA<NetworkException>()));

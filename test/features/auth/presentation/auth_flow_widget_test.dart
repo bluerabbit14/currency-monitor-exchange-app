@@ -4,6 +4,7 @@ import 'package:currency/core/error/failures.dart';
 import 'package:currency/features/auth/domain/entities/google_sign_in_outcome.dart';
 import 'package:currency/features/auth/domain/repositories/auth_repository.dart';
 import 'package:currency/features/auth/presentation/bloc/auth_session_cubit.dart';
+import 'package:currency/features/shell/presentation/widgets/floating_nav_bar.dart';
 import 'package:currency/features/auth/presentation/pages/login_page.dart';
 import 'package:currency/features/auth/presentation/pages/otp_page.dart';
 import 'package:currency/features/shell/presentation/pages/home_shell_page.dart';
@@ -12,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/fake_auth_repository.dart';
+import '../../../helpers/fake_profile_repository.dart';
 
 void main() {
   late FakeAuthRepository repo;
@@ -20,6 +22,7 @@ void main() {
   setUp(() async {
     await sl.reset();
     await init();
+    await useFakeProfileRepository();
     repo = FakeAuthRepository();
     // Swap the real network/storage-backed repository for the fake. Everything
     // above it (use cases, cubits, pages) is the real wiring.
@@ -54,13 +57,17 @@ void main() {
     expect(find.byType(LoginPage), findsOneWidget);
   });
 
-  testWidgets('a stored session opens the home screen directly', (tester) async {
+  testWidgets('a stored session opens the home screen directly', (
+    tester,
+  ) async {
     await pumpApp(tester, signedIn: true);
     expect(find.byType(HomeShellPage), findsOneWidget);
     expect(find.byType(LoginPage), findsNothing);
   });
 
-  testWidgets('invalid email shows an inline error and sends nothing', (tester) async {
+  testWidgets('invalid email shows an inline error and sends nothing', (
+    tester,
+  ) async {
     await pumpApp(tester);
 
     await enterEmailAndContinue(tester, 'not-an-email');
@@ -70,7 +77,9 @@ void main() {
     expect(find.byType(OtpPage), findsNothing);
   });
 
-  testWidgets('email OTP: send, wrong code, then success routes home', (tester) async {
+  testWidgets('email OTP: send, wrong code, then success routes home', (
+    tester,
+  ) async {
     await pumpApp(tester);
     var attempts = 0;
     repo.onVerify = (c, otp) async {
@@ -100,12 +109,17 @@ void main() {
     expect(find.byType(LoginPage), findsNothing);
   });
 
-  testWidgets('OTP page: resend is disabled during the cooldown', (tester) async {
+  testWidgets('OTP page: resend is disabled during the cooldown', (
+    tester,
+  ) async {
     await pumpApp(tester);
     await enterEmailAndContinue(tester, 'a@b.co');
 
     expect(find.textContaining('Resend code in'), findsOneWidget);
-    await tester.tap(find.textContaining('Resend code in'), warnIfMissed: false);
+    await tester.tap(
+      find.textContaining('Resend code in'),
+      warnIfMissed: false,
+    );
     await tester.pump();
     expect(repo.sent, hasLength(1)); // only the original send
 
@@ -117,7 +131,9 @@ void main() {
     expect(find.text('A new code has been sent'), findsOneWidget);
   });
 
-  testWidgets('send failure keeps the user on the login page with a message', (tester) async {
+  testWidgets('send failure keeps the user on the login page with a message', (
+    tester,
+  ) async {
     await pumpApp(tester);
     repo.onSend = (_) async => const Left(NetworkFailure());
 
@@ -127,7 +143,9 @@ void main() {
     expect(find.text(const NetworkFailure().message), findsOneWidget);
   });
 
-  testWidgets('google: existing account opens the link-verification OTP page', (tester) async {
+  testWidgets('google: existing account opens the link-verification OTP page', (
+    tester,
+  ) async {
     await pumpApp(tester);
     repo.onGoogle = () async => const Right(
       GoogleLinkRequired(
@@ -171,12 +189,15 @@ void main() {
   });
 
   testWidgets('logout from Settings returns to the login page', (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await pumpApp(tester, signedIn: true);
 
-    final nav = find.byType(NavigationBar);
+    final nav = find.byType(FloatingNavBar);
     await tester.tap(find.descendant(of: nav, matching: find.text('Settings')));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, 'Log out'));
+    await tester.tap(find.widgetWithText(TextButton, 'Log out'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Log out'));
     await tester.pumpAndSettle();
@@ -186,12 +207,50 @@ void main() {
     expect(find.byType(HomeShellPage), findsNothing);
   });
 
-  testWidgets('the session being revoked elsewhere returns to login', (tester) async {
+  testWidgets('the session being revoked elsewhere returns to login', (
+    tester,
+  ) async {
     await pumpApp(tester, signedIn: true);
 
     repo.sessions.add(null); // e.g. refresh token rejected by the backend
     await tester.pumpAndSettle();
 
     expect(find.byType(LoginPage), findsOneWidget);
+  });
+
+  group('login page layout never overflows', () {
+    const sizes = {
+      'small phone': Size(320, 480),
+      'compact phone': Size(360, 640),
+      'regular phone': Size(390, 844),
+      'landscape': Size(800, 360),
+      'tablet': Size(820, 1180),
+    };
+
+    for (final entry in sizes.entries) {
+      for (final textScale in [1.0, 1.6]) {
+        for (final keyboard in [0.0, 280.0]) {
+          testWidgets(
+            '${entry.key}, text x$textScale, keyboard ${keyboard.toInt()}',
+            (tester) async {
+              tester.view.physicalSize = entry.value;
+              tester.view.devicePixelRatio = 1;
+              tester.view.viewInsets = FakeViewPadding(bottom: keyboard);
+              tester.platformDispatcher.textScaleFactorTestValue = textScale;
+              addTearDown(() {
+                tester.view.reset();
+                tester.platformDispatcher.clearAllTestValues();
+              });
+
+              await pumpApp(tester);
+
+              // A RenderFlex overflow is reported as a test exception.
+              expect(tester.takeException(), isNull);
+              expect(find.byType(LoginPage), findsOneWidget);
+            },
+          );
+        }
+      }
+    }
   });
 }

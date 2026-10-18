@@ -1,8 +1,7 @@
 import 'package:dartz/dartz.dart';
-import 'package:logger/logger.dart';
 
 import '../../../../core/error/failures.dart';
-import '../../../../core/network/api_exception.dart';
+import '../../../../core/network/api_guard.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/contact_identifier.dart';
 import '../../domain/entities/google_sign_in_outcome.dart';
@@ -12,8 +11,6 @@ import '../datasources/auth_remote_data_source.dart';
 import '../datasources/google_sign_in_data_source.dart';
 import '../models/auth_models.dart';
 import '../token_manager.dart';
-
-final _logger = Logger();
 
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(
@@ -33,13 +30,9 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<AuthSession?> restoreSession() async {
-    final session = await _tokens.current();
-    if (session == null) return null;
-    if (!session.isAccessTokenExpired(now: _now())) return session;
-    // Null here means either "rejected" (already cleared) or "couldn't
-    // reach the server". In the second case keep the user signed in; the
-    // next authenticated request retries the refresh.
-    return await _tokens.refresh() ?? await _tokens.current();
+    // Local only: no request at launch. An expired access token is renewed
+    // by the authenticated client on the first request that gets a 401.
+    return _tokens.current();
   }
 
   @override
@@ -49,7 +42,10 @@ class AuthRepositoryImpl implements AuthRepository {
     final res = await _remote.sendOtp(contact.value);
     // Keep our parsed contact: the backend echoes it normalised, which is the
     // same value we sent.
-    return OtpChallenge(contact: contact, expiresInSeconds: res.expiresInSeconds);
+    return OtpChallenge(
+      contact: contact,
+      expiresInSeconds: res.expiresInSeconds,
+    );
   });
 
   @override
@@ -94,7 +90,6 @@ class AuthRepositoryImpl implements AuthRepository {
       await _remote.logout(session.refreshToken);
     } catch (e) {
       // The refresh token stays valid server-side until it expires (30 days).
-      _logger.w('Server-side logout failed: $e');
     }
   }
 
@@ -104,44 +99,6 @@ class AuthRepositoryImpl implements AuthRepository {
     return SignInResult(session: session, isNewUser: tokens.newUser);
   }
 
-  Future<Either<Failure, T>> _guard<T>(Future<T> Function() action) async {
-    try {
-      return Right(await action());
-    } on NetworkException {
-      return const Left(NetworkFailure());
-    } on ApiException catch (e) {
-      return Left(_fromApi(e));
-    } on FormatException catch (e) {
-      _logger.e('Malformed auth response: ${e.message}');
-      return const Left(ServerFailure('Unexpected response from server'));
-    } catch (e, st) {
-      _logger.e('Unexpected auth error', error: e, stackTrace: st);
-      return const Left(AuthFailure());
-    }
-  }
-
-  /// Backend 4xx messages are written for end users ("Invalid or expired
-  /// OTP."), so they are shown as-is. 5xx details are not.
-  static Failure _fromApi(ApiException e) {
-    if (e.statusCode == 429) {
-      return ServerFailure(
-        'Too many attempts. Please wait a moment and try again',
-        statusCode: e.statusCode,
-        code: e.code,
-      );
-    }
-    if (e.statusCode >= 500) {
-      return ServerFailure(
-        e.statusCode == 503
-            ? 'Service temporarily unavailable. Please try again shortly'
-            : 'Something went wrong. Please try again',
-        statusCode: e.statusCode,
-        code: e.code,
-      );
-    }
-    final message = e.statusCode == 400 && e.fieldErrors.isNotEmpty
-        ? e.fieldErrors.values.first
-        : e.message;
-    return ServerFailure(message, statusCode: e.statusCode, code: e.code);
-  }
+  Future<Either<Failure, T>> _guard<T>(Future<T> Function() action) =>
+      guardApi(action);
 }

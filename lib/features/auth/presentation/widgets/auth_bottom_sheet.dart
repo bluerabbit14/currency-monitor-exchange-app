@@ -48,7 +48,9 @@ class AuthBottomSheet extends StatefulWidget {
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: AuthBottomSheet(
           onContinue: onContinue,
           onGoogle: onGoogle,
@@ -162,7 +164,11 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
                 Expanded(
                   child: _SocialButton(
                     onTap: widget.onApple,
-                    icon: const Icon(Icons.apple, size: 32, color: Colors.black),
+                    icon: const Icon(
+                      Icons.apple,
+                      size: 32,
+                      color: Colors.black,
+                    ),
                   ),
                 ),
               ],
@@ -210,10 +216,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.mail_outline_rounded,
-                color: Color(0xFF8A8FA3),
-              ),
+              const Icon(Icons.mail_outline_rounded, color: Color(0xFF8A8FA3)),
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(

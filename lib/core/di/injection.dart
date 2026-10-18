@@ -18,6 +18,11 @@ import '../../features/converter/data/repositories/converter_repository_impl.dar
 import '../../features/converter/domain/repositories/converter_repository.dart';
 import '../../features/converter/domain/usecases/convert_currency.dart';
 import '../../features/converter/presentation/bloc/converter_bloc.dart';
+import '../../features/profile/data/datasources/profile_remote_data_source.dart';
+import '../../features/profile/data/repositories/profile_repository_impl.dart';
+import '../../features/profile/domain/repositories/profile_repository.dart';
+import '../../features/profile/domain/usecases/get_profile.dart';
+import '../../features/profile/presentation/bloc/profile_cubit.dart';
 import '../network/api_client.dart';
 
 final sl = GetIt.instance;
@@ -48,6 +53,18 @@ Future<void> init() async {
   sl.registerLazySingleton<ApiClient>(
     () => ApiClient.authenticated(sl<TokenManager>()),
     instanceName: authenticatedApiClient,
+  );
+
+  // Profile
+  sl.registerFactory(() => ProfileCubit(sl()));
+  sl.registerLazySingleton(() => GetProfile(sl()));
+  sl.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton(
+    () => ProfileRemoteDataSource(
+      sl<ApiClient>(instanceName: authenticatedApiClient),
+    ),
   );
 
   // Converter

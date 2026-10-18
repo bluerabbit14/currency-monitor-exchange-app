@@ -14,9 +14,8 @@ class OtpPage extends StatelessWidget {
   final OtpFlow flow;
 
   static Future<void> open(BuildContext context, OtpFlow flow) {
-    return Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => OtpPage(flow: flow)));
+    return Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => OtpPage(flow: flow)));
   }
 
   String get _destination => switch (flow) {
@@ -94,9 +93,8 @@ class _OtpViewState extends State<_OtpView> {
                 children: [
                   Text(
                     widget.title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 12),
                   Text(widget.subtitle),

@@ -1,11 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:logger/logger.dart';
 
 import '../constant/api_constants.dart';
 import 'api_exception.dart';
 import 'token_provider.dart';
-
-final _logger = Logger();
 
 /// Thin Dio wrapper that understands the backend's `ApiResponse` envelope:
 ///
@@ -51,9 +48,17 @@ class ApiClient {
     try {
       response = await _dio.post<dynamic>(path, data: data);
     } on DioException catch (e) {
-      _logger.w(
-        'POST ${_dio.options.baseUrl}$path failed: ${e.type} ${e.error} ${e.message}',
-      );
+      throw _fromDio(e);
+    }
+    return unwrap(response);
+  }
+
+  /// Returns the envelope `body`.
+  Future<Map<String, dynamic>?> get(String path) async {
+    final Response<dynamic> response;
+    try {
+      response = await _dio.get<dynamic>(path);
+    } on DioException catch (e) {
       throw _fromDio(e);
     }
     return unwrap(response);

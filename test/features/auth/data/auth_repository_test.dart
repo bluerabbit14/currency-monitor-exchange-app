@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:currency/core/constant/api_constants.dart';
 import 'package:currency/core/error/failures.dart';
+import 'package:currency/core/network/api_client.dart';
+import 'package:currency/core/network/api_exception.dart';
 import 'package:currency/features/auth/data/datasources/google_sign_in_data_source.dart';
 import 'package:currency/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:currency/features/auth/data/token_manager.dart';
@@ -83,22 +85,25 @@ void main() {
       await sub.cancel();
     });
 
-    test('wrong code surfaces the backend message and stores nothing', () async {
-      adapter.handler = (o) =>
-          apiError(401, 'Invalid or expired OTP.', code: 'UNAUTHORIZED');
+    test(
+      'wrong code surfaces the backend message and stores nothing',
+      () async {
+        adapter.handler = (o) =>
+            apiError(401, 'Invalid or expired OTP.', code: 'UNAUTHORIZED');
 
-      final result = await repo.verifyOtp(email, '000000');
+        final result = await repo.verifyOtp(email, '000000');
 
-      expect(
-        result.swap().getOrElse(() => throw 'expected failure'),
-        const ServerFailure(
-          'Invalid or expired OTP.',
-          statusCode: 401,
-          code: 'UNAUTHORIZED',
-        ),
-      );
-      expect(storage.stored, isNull);
-    });
+        expect(
+          result.swap().getOrElse(() => throw 'expected failure'),
+          const ServerFailure(
+            'Invalid or expired OTP.',
+            statusCode: 401,
+            code: 'UNAUTHORIZED',
+          ),
+        );
+        expect(storage.stored, isNull);
+      },
+    );
 
     test('400 validation uses the first field message', () async {
       adapter.handler = (o) => apiError(
@@ -138,19 +143,25 @@ void main() {
       );
     });
 
-    test('5xx hides backend internals; 503 and 429 get friendly text', () async {
-      adapter.handler = (o) => apiError(500, 'NullPointerException at Foo.java:12');
-      var failure = (await repo.sendOtp(email)).swap().getOrElse(() => throw 'x');
-      expect(failure.message, 'Something went wrong. Please try again');
+    test(
+      '5xx hides backend internals; 503 and 429 get friendly text',
+      () async {
+        adapter.handler = (o) =>
+            apiError(500, 'NullPointerException at Foo.java:12');
+        var failure = (await repo.sendOtp(email))
+            .swap()
+            .getOrElse(() => throw 'x');
+        expect(failure.message, 'Something went wrong. Please try again');
 
-      adapter.handler = (o) => apiError(503, 'Resend is down');
-      failure = (await repo.sendOtp(email)).swap().getOrElse(() => throw 'x');
-      expect(failure.message, contains('temporarily unavailable'));
+        adapter.handler = (o) => apiError(503, 'Resend is down');
+        failure = (await repo.sendOtp(email)).swap().getOrElse(() => throw 'x');
+        expect(failure.message, contains('temporarily unavailable'));
 
-      adapter.handler = (o) => apiError(429, 'slow down');
-      failure = (await repo.sendOtp(email)).swap().getOrElse(() => throw 'x');
-      expect(failure.message, contains('Too many attempts'));
-    });
+        adapter.handler = (o) => apiError(429, 'slow down');
+        failure = (await repo.sendOtp(email)).swap().getOrElse(() => throw 'x');
+        expect(failure.message, contains('Too many attempts'));
+      },
+    );
 
     test('malformed success body is a failure, not a crash', () async {
       adapter.handler = (o) => ok({'unexpected': true});
@@ -179,28 +190,31 @@ void main() {
       expect(google.signIns, 1);
     });
 
-    test('LINK_VERIFICATION_REQUIRED stores nothing and returns the link', () async {
-      adapter.handler = (o) => ok({
-        'status': 'LINK_VERIFICATION_REQUIRED',
-        'linkToken': 'link-123',
-        'maskedEmail': 'u***@example.com',
-        'linkExpiresInSeconds': 300,
-      });
+    test(
+      'LINK_VERIFICATION_REQUIRED stores nothing and returns the link',
+      () async {
+        adapter.handler = (o) => ok({
+          'status': 'LINK_VERIFICATION_REQUIRED',
+          'linkToken': 'link-123',
+          'maskedEmail': 'u***@example.com',
+          'linkExpiresInSeconds': 300,
+        });
 
-      final outcome = (await repo.signInWithGoogle()).getOrElse(
-        () => throw 'expected success',
-      );
+        final outcome = (await repo.signInWithGoogle()).getOrElse(
+          () => throw 'expected success',
+        );
 
-      expect(
-        outcome,
-        const GoogleLinkRequired(
-          linkToken: 'link-123',
-          maskedEmail: 'u***@example.com',
-          expiresInSeconds: 300,
-        ),
-      );
-      expect(storage.stored, isNull);
-    });
+        expect(
+          outcome,
+          const GoogleLinkRequired(
+            linkToken: 'link-123',
+            maskedEmail: 'u***@example.com',
+            expiresInSeconds: 300,
+          ),
+        );
+        expect(storage.stored, isNull);
+      },
+    );
 
     test('link verify signs in', () async {
       adapter.handler = (o) =>
@@ -240,9 +254,14 @@ void main() {
       expect(failure, isA<ServerFailure>());
       expect((failure as ServerFailure).code, 'GOOGLE_ACCOUNT_CONFLICT');
 
-      adapter.handler = (o) =>
-          apiError(403, 'Email not verified', code: 'GOOGLE_EMAIL_NOT_VERIFIED');
-      failure = (await repo.signInWithGoogle()).swap().getOrElse(() => throw 'x');
+      adapter.handler = (o) => apiError(
+        403,
+        'Email not verified',
+        code: 'GOOGLE_EMAIL_NOT_VERIFIED',
+      );
+      failure = (await repo.signInWithGoogle()).swap().getOrElse(
+        () => throw 'x',
+      );
       expect((failure as ServerFailure).code, 'GOOGLE_EMAIL_NOT_VERIFIED');
       expect(storage.stored, isNull);
     });
@@ -256,62 +275,110 @@ void main() {
       expect(adapter.requests, isEmpty);
     });
 
-    test('restore refreshes an expired access token', () async {
-      storage.stored = session(expiresIn: const Duration(seconds: -5));
-      adapter.handler = (o) =>
-          ok(tokenBody(access: 'new-access', refresh: 'new-refresh'));
+    test(
+      'restore makes no request, even when the access token expired',
+      () async {
+        final expired = session(expiresIn: const Duration(seconds: -5));
+        storage.stored = expired;
 
-      final restored = await repo.restoreSession();
+        expect(await repo.restoreSession(), expired);
+        expect(adapter.requests, isEmpty);
+      },
+    );
 
-      expect(restored?.accessToken, 'new-access');
-      expect(adapter.requests.single.data, {'refreshToken': 'old-refresh'});
-      expect(storage.stored?.refreshToken, 'new-refresh');
-    });
+    group('expired token on the first authenticated request', () {
+      ApiClient protectedClient(FakeAdapter protected) {
+        final dio = Dio(
+          BaseOptions(baseUrl: 'http://test', validateStatus: (_) => true),
+        )..httpClientAdapter = protected;
+        return ApiClient.authenticated(tokens, dio: dio);
+      }
 
-    test('restore signs out when the refresh token is rejected', () async {
-      storage.stored = session(expiresIn: const Duration(seconds: -5));
-      adapter.handler = (o) => apiError(401, 'Invalid or expired refresh token');
+      test('is refreshed and the request retried', () async {
+        storage.stored = session(expiresIn: const Duration(seconds: -5));
+        adapter.handler = (o) =>
+            ok(tokenBody(access: 'new-access', refresh: 'new-refresh'));
+        final protected = FakeAdapter(
+          (o) => o.headers['Authorization'] == 'Bearer new-access'
+              ? ok({'done': true})
+              : apiError(401, 'Unauthorized'),
+        );
 
-      expect(await repo.restoreSession(), isNull);
-      expect(storage.stored, isNull);
-    });
+        await repo.restoreSession();
+        expect(adapter.requests, isEmpty);
 
-    test('restore keeps the session when offline', () async {
-      final expired = session(expiresIn: const Duration(seconds: -5));
-      storage.stored = expired;
-      adapter.handler = (o) => throw DioException.connectionError(
-        requestOptions: o,
-        reason: 'offline',
-      );
+        final body = await protectedClient(protected).get('/api/v1/users/me');
 
-      expect(await repo.restoreSession(), expired);
-      expect(storage.stored, expired);
+        expect(body, {'done': true});
+        expect(adapter.requests.single.data, {'refreshToken': 'old-refresh'});
+        expect(storage.stored?.refreshToken, 'new-refresh');
+      });
+
+      test('a rejected refresh token signs the user out', () async {
+        storage.stored = session(expiresIn: const Duration(seconds: -5));
+        adapter.handler = (o) =>
+            apiError(401, 'Invalid or expired refresh token');
+        final protected = FakeAdapter((o) => apiError(401, 'Unauthorized'));
+        final emitted = <AuthSession?>[];
+        final sub = repo.sessionChanges.listen(emitted.add);
+
+        await expectLater(
+          protectedClient(protected).get('/api/v1/users/me'),
+          throwsA(isA<ApiException>()),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        expect(storage.stored, isNull);
+        expect(emitted, [null]);
+        await sub.cancel();
+      });
+
+      test('offline during that refresh keeps the session', () async {
+        final expired = session(expiresIn: const Duration(seconds: -5));
+        storage.stored = expired;
+        adapter.handler = (o) => throw DioException.connectionError(
+          requestOptions: o,
+          reason: 'offline',
+        );
+        final protected = FakeAdapter((o) => apiError(401, 'Unauthorized'));
+
+        await expectLater(
+          protectedClient(protected).get('/api/v1/users/me'),
+          throwsA(isA<ApiException>()),
+        );
+
+        expect(storage.stored, expired);
+      });
     });
 
     test('restore with nothing stored is signed out', () async {
       expect(await repo.restoreSession(), isNull);
     });
 
-    test('logout clears locally, signs out of Google and revokes remotely', () async {
-      storage.stored = session();
-      adapter.handler = (o) => noContent();
-      final emitted = <AuthSession?>[];
-      final sub = repo.sessionChanges.listen(emitted.add);
+    test(
+      'logout clears locally, signs out of Google and revokes remotely',
+      () async {
+        storage.stored = session();
+        adapter.handler = (o) => noContent();
+        final emitted = <AuthSession?>[];
+        final sub = repo.sessionChanges.listen(emitted.add);
 
-      await repo.logout();
-      await Future<void>.delayed(Duration.zero);
+        await repo.logout();
+        await Future<void>.delayed(Duration.zero);
 
-      expect(storage.stored, isNull);
-      expect(google.signOuts, 1);
-      expect(adapter.requests.single.path, ApiConstants.logout);
-      expect(adapter.requests.single.data, {'refreshToken': 'old-refresh'});
-      expect(emitted, [null]);
-      await sub.cancel();
-    });
+        expect(storage.stored, isNull);
+        expect(google.signOuts, 1);
+        expect(adapter.requests.single.path, ApiConstants.logout);
+        expect(adapter.requests.single.data, {'refreshToken': 'old-refresh'});
+        expect(emitted, [null]);
+        await sub.cancel();
+      },
+    );
 
     test('logout still succeeds locally when the server call fails', () async {
       storage.stored = session();
-      adapter.handler = (o) => apiError(401, 'Invalid or expired refresh token');
+      adapter.handler = (o) =>
+          apiError(401, 'Invalid or expired refresh token');
 
       await repo.logout();
       expect(storage.stored, isNull);
@@ -338,42 +405,48 @@ void main() {
   });
 
   group('token manager', () {
-    test('concurrent refreshes share one request (refresh tokens rotate)', () async {
-      storage.stored = session();
-      final gate = Completer<void>();
-      adapter.handler = (o) async {
-        await gate.future;
-        return ok(tokenBody(access: 'new-access', refresh: 'new-refresh'));
-      };
+    test(
+      'concurrent refreshes share one request (refresh tokens rotate)',
+      () async {
+        storage.stored = session();
+        final gate = Completer<void>();
+        adapter.handler = (o) async {
+          await gate.future;
+          return ok(tokenBody(access: 'new-access', refresh: 'new-refresh'));
+        };
 
-      final a = tokens.refresh();
-      final b = tokens.refresh();
-      final c = tokens.refreshAccessToken();
-      await Future<void>.delayed(Duration.zero);
-      gate.complete();
-      final results = await Future.wait([a, b, c]);
+        final a = tokens.refresh();
+        final b = tokens.refresh();
+        final c = tokens.refreshAccessToken();
+        await Future<void>.delayed(Duration.zero);
+        gate.complete();
+        final results = await Future.wait([a, b, c]);
 
-      expect(adapter.requests, hasLength(1));
-      expect(results[0], results[1]);
-      expect(results[2], 'new-access');
-    });
+        expect(adapter.requests, hasLength(1));
+        expect(results[0], results[1]);
+        expect(results[2], 'new-access');
+      },
+    );
 
-    test('a refresh finishing after logout does not resurrect the session', () async {
-      storage.stored = session();
-      final gate = Completer<void>();
-      adapter.handler = (o) async {
-        await gate.future;
-        return ok(tokenBody());
-      };
+    test(
+      'a refresh finishing after logout does not resurrect the session',
+      () async {
+        storage.stored = session();
+        final gate = Completer<void>();
+        adapter.handler = (o) async {
+          await gate.future;
+          return ok(tokenBody());
+        };
 
-      final pending = tokens.refresh();
-      await Future<void>.delayed(Duration.zero);
-      await tokens.clear();
-      gate.complete();
+        final pending = tokens.refresh();
+        await Future<void>.delayed(Duration.zero);
+        await tokens.clear();
+        gate.complete();
 
-      expect(await pending, isNull);
-      expect(storage.stored, isNull);
-    });
+        expect(await pending, isNull);
+        expect(storage.stored, isNull);
+      },
+    );
 
     test('a server error during refresh keeps the session', () async {
       final original = session();

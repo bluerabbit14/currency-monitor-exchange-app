@@ -28,11 +28,13 @@ class _CurrencyAppState extends State<CurrencyApp> {
         navigatorKey: _navigatorKey,
         // Signing in or out swaps `home`, but routes pushed on top of it (the
         // OTP screen, anything opened from Settings) would stay on screen.
-        builder: (context, child) => BlocListener<AuthSessionCubit, AuthSessionState>(
-          listener: (_, _) =>
-              _navigatorKey.currentState?.popUntil((route) => route.isFirst),
-          child: child,
-        ),
+        builder: (context, child) =>
+            BlocListener<AuthSessionCubit, AuthSessionState>(
+              listener: (_, _) => _navigatorKey.currentState?.popUntil(
+                (route) => route.isFirst,
+              ),
+              child: child,
+            ),
         home: BlocBuilder<AuthSessionCubit, AuthSessionState>(
           builder: (context, state) => switch (state) {
             AuthSessionUnknown() => const _Splash(),

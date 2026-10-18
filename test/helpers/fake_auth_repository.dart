@@ -20,14 +20,17 @@ class FakeAuthRepository implements AuthRepository {
   AuthSession? restored;
   int logouts = 0;
 
-  Future<Either<Failure, OtpChallenge>> Function(ContactIdentifier) onSend =
-      (c) async => Right(OtpChallenge(contact: c, expiresInSeconds: 300));
+  Future<Either<Failure, OtpChallenge>> Function(ContactIdentifier) onSend = (
+    c,
+  ) async => Right(OtpChallenge(contact: c, expiresInSeconds: 300));
   Future<Either<Failure, SignInResult>> Function(ContactIdentifier, String)
   onVerify = (_, _) async => Right(fakeSignIn);
   Future<Either<Failure, GoogleSignInOutcome>> Function() onGoogle = () async =>
       Right(GoogleSignedIn(fakeSignIn));
-  Future<Either<Failure, SignInResult>> Function(String, String) onLink =
-      (_, _) async => Right(fakeSignIn);
+  Future<Either<Failure, SignInResult>> Function(String, String) onLink = (
+    _,
+    _,
+  ) async => Right(fakeSignIn);
 
   final sent = <ContactIdentifier>[];
 
@@ -42,8 +45,10 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, SignInResult>> verifyOtp(ContactIdentifier c, String o) =>
-      onVerify(c, o);
+  Future<Either<Failure, SignInResult>> verifyOtp(
+    ContactIdentifier c,
+    String o,
+  ) => onVerify(c, o);
   @override
   Future<Either<Failure, GoogleSignInOutcome>> signInWithGoogle() => onGoogle();
   @override
@@ -57,4 +62,3 @@ class FakeAuthRepository implements AuthRepository {
     sessions.add(null);
   }
 }
-

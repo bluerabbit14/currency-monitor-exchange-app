@@ -37,24 +37,26 @@ class FakeAdapter implements HttpClientAdapter {
       requests.where((r) => r.path == path).toList();
 }
 
-ResponseBody jsonBody(int status, Map<String, dynamic> json) => ResponseBody.fromString(
-  jsonEncode(json),
-  status,
-  headers: {
-    Headers.contentTypeHeader: [Headers.jsonContentType],
-  },
-);
+ResponseBody jsonBody(int status, Map<String, dynamic> json) =>
+    ResponseBody.fromString(
+      jsonEncode(json),
+      status,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
 
 ResponseBody noContent() => ResponseBody.fromString('', 204);
 
 /// `{ status: SUCCESS, statusCode, message, body }` like the real backend.
-ResponseBody ok(Map<String, dynamic> body, {int status = 200}) => jsonBody(status, {
-  'status': 'SUCCESS',
-  'statusCode': status,
-  'message': 'ok',
-  'body': body,
-  'meta': {'timestamp': '2026-01-01T00:00:00Z', 'path': '/x'},
-});
+ResponseBody ok(Map<String, dynamic> body, {int status = 200}) =>
+    jsonBody(status, {
+      'status': 'SUCCESS',
+      'statusCode': status,
+      'message': 'ok',
+      'body': body,
+      'meta': {'timestamp': '2026-01-01T00:00:00Z', 'path': '/x'},
+    });
 
 ResponseBody apiError(
   int status,

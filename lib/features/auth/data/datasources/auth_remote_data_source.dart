@@ -38,13 +38,15 @@ class AuthRemoteDataSource {
         await _body(ApiConstants.googleSignIn, {'idToken': idToken}),
       );
 
-  Future<AuthTokensModel> googleLinkVerify(String linkToken, String otp) async =>
-      AuthTokensModel.fromJson(
-        await _body(ApiConstants.googleLinkVerify, {
-          'linkToken': linkToken,
-          'otp': otp,
-        }),
-      );
+  Future<AuthTokensModel> googleLinkVerify(
+    String linkToken,
+    String otp,
+  ) async => AuthTokensModel.fromJson(
+    await _body(ApiConstants.googleLinkVerify, {
+      'linkToken': linkToken,
+      'otp': otp,
+    }),
+  );
 
   Future<Map<String, dynamic>> _body(
     String path,

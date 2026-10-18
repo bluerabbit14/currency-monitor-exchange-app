@@ -1,14 +1,10 @@
 import 'dart:async';
 
-import 'package:logger/logger.dart';
-
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/token_provider.dart';
 import '../domain/entities/auth_session.dart';
 import 'datasources/auth_local_data_source.dart';
 import 'datasources/auth_remote_data_source.dart';
-
-final _logger = Logger();
 
 /// Single owner of the stored session: loads, saves, clears and refreshes it.
 ///
@@ -61,9 +57,8 @@ class TokenManager implements TokenProvider {
   /// Renews the session. Returns the new session, or null when it could not be
   /// renewed. A rejected refresh token signs the user out; a network or server
   /// error leaves the session in place so a later attempt can succeed.
-  Future<AuthSession?> refresh() => _refreshing ??= _doRefresh().whenComplete(
-    () => _refreshing = null,
-  );
+  Future<AuthSession?> refresh() =>
+      _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
 
   Future<AuthSession?> _doRefresh() async {
     final before = await current();
@@ -77,19 +72,15 @@ class TokenManager implements TokenProvider {
       return fresh;
     } on ApiException catch (e) {
       if (e.statusCode >= 400 && e.statusCode < 500) {
-        _logger.w('Refresh token rejected (${e.statusCode}); signing out');
         if ((await current())?.refreshToken == before.refreshToken) {
           await clear();
         }
-      } else {
-        _logger.w('Token refresh failed with ${e.statusCode}');
       }
+      // Server error: keep the session so a later attempt can succeed.
       return null;
-    } on NetworkException catch (e) {
-      _logger.w('Token refresh failed: ${e.message}');
+    } on NetworkException {
       return null;
-    } on FormatException catch (e) {
-      _logger.w('Token refresh returned a malformed response: ${e.message}');
+    } on FormatException {
       return null;
     }
   }

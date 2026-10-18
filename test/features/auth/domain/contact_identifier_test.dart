@@ -5,11 +5,18 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('EmailContact.tryParse', () {
     test('trims and lower-cases like the backend', () {
-      expect(EmailContact.tryParse('  Foo.Bar+x@Example.COM ')?.value, 'foo.bar+x@example.com');
+      expect(
+        EmailContact.tryParse('  Foo.Bar+x@Example.COM ')?.value,
+        'foo.bar+x@example.com',
+      );
     });
 
     test('accepts typical addresses', () {
-      for (final e in ['a@b.co', 'first.last@mail.example.org', 'x_y-z@a-b.io']) {
+      for (final e in [
+        'a@b.co',
+        'first.last@mail.example.org',
+        'x_y-z@a-b.io',
+      ]) {
         expect(EmailContact.tryParse(e), isNotNull, reason: e);
       }
     });

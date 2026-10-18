@@ -146,9 +146,7 @@ class OtpVerifyCubit extends Cubit<OtpVerifyState> {
       );
       return;
     }
-    emit(
-      state.copyWith(isVerifying: true, error: () => null, resent: false),
-    );
+    emit(state.copyWith(isVerifying: true, error: () => null, resent: false));
     final result = switch (flow) {
       ContactOtpFlow(:final contact) => await _verifyOtp(
         VerifyOtpParams(contact: contact, otp: otp),
@@ -159,8 +157,9 @@ class OtpVerifyCubit extends Cubit<OtpVerifyState> {
     };
     if (isClosed) return;
     result.fold(
-      (failure) =>
-          emit(state.copyWith(isVerifying: false, error: () => failure.message)),
+      (failure) => emit(
+        state.copyWith(isVerifying: false, error: () => failure.message),
+      ),
       (_) => emit(state.copyWith(isVerifying: false)),
     );
   }
@@ -173,8 +172,9 @@ class OtpVerifyCubit extends Cubit<OtpVerifyState> {
     final result = await _sendOtp(current.contact);
     if (isClosed) return;
     result.fold(
-      (failure) =>
-          emit(state.copyWith(isResending: false, error: () => failure.message)),
+      (failure) => emit(
+        state.copyWith(isResending: false, error: () => failure.message),
+      ),
       (challenge) {
         _expiresAt = _now().add(Duration(seconds: challenge.expiresInSeconds));
         emit(state.copyWith(isResending: false, resent: true));
