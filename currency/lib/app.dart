@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'features/auth/presentation/pages/login_page.dart';
 import 'features/shell/presentation/pages/home_shell_page.dart';
+
+/// Decides the launch screen. Set to true to skip the login screen.
+const bool isLoggedIn = false;
 
 class CurrencyApp extends StatelessWidget {
   const CurrencyApp({super.key});
@@ -9,10 +13,7 @@ class CurrencyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Currency',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F766E)),
-      ),
-      home: const HomeShellPage(),
+      home: isLoggedIn ? const HomeShellPage() : const LoginPage(),
     );
   }
 }
