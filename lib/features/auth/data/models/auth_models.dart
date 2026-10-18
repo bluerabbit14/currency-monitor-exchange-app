@@ -35,11 +35,13 @@ class AuthTokensModel {
   final int expiresInSeconds;
   final bool newUser;
 
-  AuthSession toSession(DateTime now) => AuthSession(
-    accessToken: accessToken,
-    refreshToken: refreshToken,
-    accessTokenExpiresAt: now.add(Duration(seconds: expiresInSeconds)),
-  );
+  AuthSession toSession(DateTime now, {bool requiresBaseCurrency = false}) =>
+      AuthSession(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        accessTokenExpiresAt: now.add(Duration(seconds: expiresInSeconds)),
+        requiresBaseCurrency: requiresBaseCurrency,
+      );
 }
 
 class OtpSendModel {

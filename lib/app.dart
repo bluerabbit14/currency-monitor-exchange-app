@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/di/injection.dart';
 import 'features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'features/auth/presentation/pages/login_page.dart';
+import 'features/currency/presentation/pages/base_currency_page.dart';
 import 'features/shell/presentation/pages/home_shell_page.dart';
 
 class CurrencyApp extends StatefulWidget {
@@ -38,6 +39,9 @@ class _CurrencyAppState extends State<CurrencyApp> {
         home: BlocBuilder<AuthSessionCubit, AuthSessionState>(
           builder: (context, state) => switch (state) {
             AuthSessionUnknown() => const _Splash(),
+            // A just-created account must pick a base currency first.
+            AuthSessionAuthenticated(needsBaseCurrency: true) =>
+              const BaseCurrencyPage(),
             AuthSessionAuthenticated() => const HomeShellPage(),
             AuthSessionUnauthenticated() => const LoginPage(),
           },

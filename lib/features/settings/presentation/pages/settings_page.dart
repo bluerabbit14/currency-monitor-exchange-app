@@ -3,10 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../auth/presentation/bloc/auth_session_cubit.dart';
+import '../../../currency/presentation/widgets/currency_picker_sheet.dart';
 import '../../../profile/presentation/bloc/profile_cubit.dart';
 import '../../../profile/presentation/widgets/profile_header.dart';
 
-/// Rows are display-only for now: no tap actions are wired up yet.
+/// "Your currency" opens the currency sheet. The other rows are display-only
+/// for now: no tap actions are wired up yet.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -65,20 +67,15 @@ class SettingsPage extends StatelessWidget {
             ),
             const ProfileHeader(),
             const SizedBox(height: 20),
-            const _SettingsCard(
+            _SettingsCard(
               children: [
-                _SettingsRow(
+                const _SettingsRow(
                   icon: Icons.notifications_none_rounded,
                   title: 'Notifications',
                   value: 'Off',
                 ),
-                _SettingsRow(
-                  icon: Icons.attach_money_rounded,
-                  title: 'Your currency',
-                  value: 'AED',
-                  circledIcon: true,
-                ),
-                _SettingsRow(
+                const _CurrencyRow(),
+                const _SettingsRow(
                   icon: Icons.auto_awesome_rounded,
                   title: 'Start screen',
                   value: 'Converter',
@@ -117,6 +114,46 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
+/// Shows the saved base currency and opens the picker sheet to change it.
+class _CurrencyRow extends StatelessWidget {
+  const _CurrencyRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ProfileCubit, ProfileState>(
+      builder: (context, state) {
+        final current = state is ProfileLoaded
+            ? state.profile.baseCurrency
+            : null;
+        return _SettingsRow(
+          icon: Icons.attach_money_rounded,
+          title: 'Your currency',
+          value: current?.code,
+          circledIcon: true,
+          onTap: () async {
+            final profile = context.read<ProfileCubit>();
+            final messenger = ScaffoldMessenger.of(context);
+            final result = await showCurrencyPickerSheet(
+              context,
+              current: current,
+            );
+            result?.fold(
+              (message) => messenger
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(
+                    content: Text('Couldn\'t update your currency. $message'),
+                  ),
+                ),
+              profile.baseCurrencyChanged,
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
 class _SettingsCard extends StatelessWidget {
   const _SettingsCard({required this.children});
 
@@ -125,6 +162,7 @@ class _SettingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      clipBehavior: Clip.antiAlias,
       padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -141,6 +179,7 @@ class _SettingsRow extends StatelessWidget {
     required this.title,
     this.value,
     this.circledIcon = false,
+    this.onTap,
   });
 
   final IconData icon;
@@ -150,50 +189,70 @@ class _SettingsRow extends StatelessWidget {
   /// Draws the icon inside a thin ring, like the currency row.
   final bool circledIcon;
 
+  /// Null for rows with no action yet.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      child: Row(
-        children: [
-          SizedBox.square(
-            dimension: 28,
-            child: circledIcon
-                ? DecoratedBox(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(width: 2),
-                    ),
-                    child: Icon(icon, size: 18, color: Colors.black),
-                  )
-                : Icon(icon, size: 26, color: Colors.black),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.black,
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        child: Row(
+          children: [
+            SizedBox.square(
+              dimension: 28,
+              child: circledIcon
+                  ? DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(width: 2),
+                      ),
+                      child: Icon(icon, size: 18, color: Colors.black),
+                    )
+                  : Icon(icon, size: 26, color: Colors.black),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                ),
               ),
             ),
-          ),
-          if (value != null) ...[
-            Text(
-              value!,
-              style: const TextStyle(fontSize: 15, color: Color(0xFF9A9AA2)),
+            if (value != null) ...[
+              // Capped so a long value (or large text) ellipsizes instead of
+              // pushing the row wider than the screen.
+              LayoutBuilder(
+                builder: (context, constraints) => ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width * 0.4,
+                  ),
+                  child: Text(
+                    value!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF9A9AA2),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 24,
+              color: Color(0xFF9A9AA2),
             ),
-            const SizedBox(width: 8),
           ],
-          const Icon(
-            Icons.chevron_right_rounded,
-            size: 24,
-            color: Color(0xFF9A9AA2),
-          ),
-        ],
+        ),
       ),
     );
   }

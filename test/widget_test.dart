@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers/fake_auth_repository.dart';
+import 'helpers/fake_currency_repository.dart';
 import 'helpers/fake_profile_repository.dart';
 
 void main() {
@@ -13,6 +14,7 @@ void main() {
     await sl.reset();
     await init();
     final profile = await useFakeProfileRepository();
+    await useFakeCurrencyRepository();
     final repo = FakeAuthRepository()..restored = fakeSession;
     final session = AuthSessionCubit(repo);
     await tester.pumpWidget(CurrencyApp(sessionCubit: session));

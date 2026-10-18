@@ -19,7 +19,13 @@ class AuthSessionUnknown extends AuthSessionState {
 }
 
 class AuthSessionAuthenticated extends AuthSessionState {
-  const AuthSessionAuthenticated();
+  const AuthSessionAuthenticated({this.needsBaseCurrency = false});
+
+  /// A new account that has not chosen its base currency yet.
+  final bool needsBaseCurrency;
+
+  @override
+  List<Object?> get props => [needsBaseCurrency];
 }
 
 class AuthSessionUnauthenticated extends AuthSessionState {
@@ -44,12 +50,17 @@ class AuthSessionCubit extends Cubit<AuthSessionState> {
 
   Future<void> logout() => _repository.logout();
 
+  /// Called once the new user has saved a base currency.
+  Future<void> baseCurrencySelected() => _repository.markBaseCurrencySelected();
+
   void _onSession(AuthSession? session) {
     if (isClosed) return;
     emit(
       session == null
           ? const AuthSessionUnauthenticated()
-          : const AuthSessionAuthenticated(),
+          : AuthSessionAuthenticated(
+              needsBaseCurrency: session.requiresBaseCurrency,
+            ),
     );
   }
 

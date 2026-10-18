@@ -18,6 +18,12 @@ import '../../features/converter/data/repositories/converter_repository_impl.dar
 import '../../features/converter/domain/repositories/converter_repository.dart';
 import '../../features/converter/domain/usecases/convert_currency.dart';
 import '../../features/converter/presentation/bloc/converter_bloc.dart';
+import '../../features/currency/data/datasources/currency_remote_data_source.dart';
+import '../../features/currency/data/repositories/currency_repository_impl.dart';
+import '../../features/currency/domain/repositories/currency_repository.dart';
+import '../../features/currency/domain/usecases/get_currencies.dart';
+import '../../features/currency/domain/usecases/set_base_currency.dart';
+import '../../features/currency/presentation/bloc/base_currency_cubit.dart';
 import '../../features/profile/data/datasources/profile_remote_data_source.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/domain/repositories/profile_repository.dart';
@@ -53,6 +59,19 @@ Future<void> init() async {
   sl.registerLazySingleton<ApiClient>(
     () => ApiClient.authenticated(sl<TokenManager>()),
     instanceName: authenticatedApiClient,
+  );
+
+  // Currency
+  sl.registerFactory(() => BaseCurrencyCubit(sl(), sl()));
+  sl.registerLazySingleton(() => GetCurrencies(sl()));
+  sl.registerLazySingleton(() => SetBaseCurrency(sl()));
+  sl.registerLazySingleton<CurrencyRepository>(
+    () => CurrencyRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton(
+    () => CurrencyRemoteDataSource(
+      sl<ApiClient>(instanceName: authenticatedApiClient),
+    ),
   );
 
   // Profile

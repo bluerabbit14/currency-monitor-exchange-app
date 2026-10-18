@@ -80,6 +80,13 @@ class AuthRepositoryImpl implements AuthRepository {
   );
 
   @override
+  Future<void> markBaseCurrencySelected() async {
+    final session = await _tokens.current();
+    if (session == null || !session.requiresBaseCurrency) return;
+    await _tokens.save(session.copyWith(requiresBaseCurrency: false));
+  }
+
+  @override
   Future<void> logout() async {
     final session = await _tokens.current();
     // Sign out locally first so the UI never waits on the network.
@@ -94,7 +101,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   Future<SignInResult> _store(AuthTokensModel tokens) async {
-    final session = tokens.toSession(_now());
+    // A brand-new account must choose a base currency before using the app.
+    final session = tokens.toSession(
+      _now(),
+      requiresBaseCurrency: tokens.newUser,
+    );
     await _tokens.save(session);
     return SignInResult(session: session, isNewUser: tokens.newUser);
   }

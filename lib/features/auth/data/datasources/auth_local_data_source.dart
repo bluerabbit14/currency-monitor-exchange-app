@@ -26,6 +26,7 @@ class AuthLocalDataSource {
         accessTokenExpiresAt: DateTime.fromMillisecondsSinceEpoch(
           json['expiresAtMs'] as int,
         ),
+        requiresBaseCurrency: json['requiresBaseCurrency'] == true,
       );
     } catch (_) {
       // Unreadable (corrupt, keystore reset after a restore/backup): treat as
@@ -41,6 +42,7 @@ class AuthLocalDataSource {
       'accessToken': session.accessToken,
       'refreshToken': session.refreshToken,
       'expiresAtMs': session.accessTokenExpiresAt.millisecondsSinceEpoch,
+      'requiresBaseCurrency': session.requiresBaseCurrency,
     }),
   );
 

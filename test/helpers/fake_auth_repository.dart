@@ -19,6 +19,7 @@ class FakeAuthRepository implements AuthRepository {
   final sessions = StreamController<AuthSession?>.broadcast();
   AuthSession? restored;
   int logouts = 0;
+  int baseCurrencyMarks = 0;
 
   Future<Either<Failure, OtpChallenge>> Function(ContactIdentifier) onSend = (
     c,
@@ -56,6 +57,12 @@ class FakeAuthRepository implements AuthRepository {
     required String linkToken,
     required String otp,
   }) => onLink(linkToken, otp);
+  @override
+  Future<void> markBaseCurrencySelected() async {
+    baseCurrencyMarks++;
+    sessions.add(fakeSession);
+  }
+
   @override
   Future<void> logout() async {
     logouts++;

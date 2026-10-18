@@ -31,6 +31,10 @@ abstract class AuthRepository {
     required String otp,
   });
 
+  /// Records that the new user has chosen a base currency, so the app opens
+  /// normally from now on. Local only.
+  Future<void> markBaseCurrencySelected();
+
   /// Always clears the local session, even if revoking it on the server fails.
   Future<void> logout();
 }

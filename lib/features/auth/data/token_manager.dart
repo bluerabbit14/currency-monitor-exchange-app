@@ -67,7 +67,11 @@ class TokenManager implements TokenProvider {
       final tokens = await _remote.refresh(before.refreshToken);
       // The user may have signed out or in again while we waited.
       if ((await current())?.refreshToken != before.refreshToken) return null;
-      final fresh = tokens.toSession(_now());
+      // Refreshing must not clear a pending base-currency choice.
+      final fresh = tokens.toSession(
+        _now(),
+        requiresBaseCurrency: before.requiresBaseCurrency,
+      );
       await save(fresh);
       return fresh;
     } on ApiException catch (e) {

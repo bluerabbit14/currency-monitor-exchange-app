@@ -73,6 +73,27 @@ void main() {
       );
     });
 
+    test('parses baseCurrency when the user has picked one', () {
+      final profile = UserProfileModel.fromJson({
+        'email': 'a@b.co',
+        'baseCurrency': {
+          'id': 'id-aed',
+          'symbol': 'AED',
+          'name': 'UAE Dirham',
+          'type': 'FIAT',
+          'status': 'ACTIVE',
+        },
+      });
+      expect(profile.baseCurrency?.code, 'AED');
+      expect(profile.baseCurrency?.name, 'UAE Dirham');
+      expect(
+        () => UserProfileModel.fromJson({
+          'baseCurrency': {'id': 1},
+        }),
+        throwsFormatException,
+      );
+    });
+
     test('contact prefers email over phone', () {
       expect(
         const UserProfile(email: 'a@b.co', phoneNumber: '+911').contact,

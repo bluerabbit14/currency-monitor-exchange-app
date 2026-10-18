@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/usecases/usecase.dart';
+import '../../../currency/domain/entities/currency.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/usecases/get_profile.dart';
 
@@ -38,6 +39,14 @@ class ProfileCubit extends Cubit<ProfileState> {
   ProfileCubit(this._getProfile) : super(const ProfileLoading());
 
   final GetProfile _getProfile;
+
+  /// The user saved a new base currency: reflect it without refetching.
+  void baseCurrencyChanged(Currency currency) {
+    final current = state;
+    if (current is ProfileLoaded) {
+      emit(ProfileLoaded(current.profile.withBaseCurrency(currency)));
+    }
+  }
 
   Future<void> load() async {
     if (state is! ProfileLoading) emit(const ProfileLoading());

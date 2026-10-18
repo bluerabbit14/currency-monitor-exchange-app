@@ -43,41 +43,63 @@ class ApiClient {
   Future<Map<String, dynamic>?> post(
     String path, {
     Map<String, dynamic>? data,
-  }) async {
-    final Response<dynamic> response;
-    try {
-      response = await _dio.post<dynamic>(path, data: data);
-    } on DioException catch (e) {
-      throw _fromDio(e);
-    }
-    return unwrap(response);
-  }
+  }) => _send(() => _dio.post<dynamic>(path, data: data));
 
   /// Returns the envelope `body`.
-  Future<Map<String, dynamic>?> get(String path) async {
-    final Response<dynamic> response;
+  Future<Map<String, dynamic>?> get(String path) =>
+      _send(() => _dio.get<dynamic>(path));
+
+  /// Returns the envelope `body`.
+  Future<Map<String, dynamic>?> put(
+    String path, {
+    Map<String, dynamic>? data,
+  }) => _send(() => _dio.put<dynamic>(path, data: data));
+
+  /// For endpoints whose envelope `body` is a JSON array.
+  Future<List<dynamic>> getList(String path) async {
+    final response = await _request(() => _dio.get<dynamic>(path));
+    final body = unwrapBody(response);
+    if (body is List) return body;
+    throw ApiException(
+      statusCode: response.statusCode ?? 0,
+      message: 'Unexpected response from server',
+    );
+  }
+
+  Future<Map<String, dynamic>?> _send(
+    Future<Response<dynamic>> Function() call,
+  ) async => unwrap(await _request(call));
+
+  Future<Response<dynamic>> _request(
+    Future<Response<dynamic>> Function() call,
+  ) async {
     try {
-      response = await _dio.get<dynamic>(path);
+      return await call();
     } on DioException catch (e) {
       throw _fromDio(e);
     }
-    return unwrap(response);
   }
 
   static Map<String, dynamic>? unwrap(Response<dynamic> response) {
+    final body = unwrapBody(response);
+    if (body == null) return null;
+    if (body is Map) return body.cast<String, dynamic>();
+    throw ApiException(
+      statusCode: response.statusCode ?? 0,
+      message: 'Unexpected response from server',
+    );
+  }
+
+  /// Validates the status and returns the raw envelope `body` (a map, a list
+  /// or null). Throws [ApiException] for error responses.
+  static Object? unwrapBody(Response<dynamic> response) {
     final status = response.statusCode ?? 0;
     final raw = response.data;
     final envelope = raw is Map ? raw.cast<String, dynamic>() : null;
 
     if (status >= 200 && status < 300) {
       if (status == 204 || envelope == null) return null;
-      final body = envelope['body'];
-      if (body == null) return null;
-      if (body is Map) return body.cast<String, dynamic>();
-      throw ApiException(
-        statusCode: status,
-        message: 'Unexpected response from server',
-      );
+      return envelope['body'];
     }
 
     final error = envelope?['error'];

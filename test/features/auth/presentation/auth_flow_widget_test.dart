@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/fake_auth_repository.dart';
+import '../../../helpers/fake_currency_repository.dart';
 import '../../../helpers/fake_profile_repository.dart';
 
 void main() {
@@ -23,6 +24,7 @@ void main() {
     await sl.reset();
     await init();
     await useFakeProfileRepository();
+    await useFakeCurrencyRepository();
     repo = FakeAuthRepository();
     // Swap the real network/storage-backed repository for the fake. Everything
     // above it (use cases, cubits, pages) is the real wiring.
