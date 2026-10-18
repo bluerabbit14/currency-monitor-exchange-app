@@ -17,7 +17,11 @@ class AuthBottomSheet extends StatefulWidget {
     this.onGoogle,
     this.onApple,
     this.onEmail,
+    this.isGoogleLoading = false,
   });
+
+  /// Shows a spinner on the Google button and disables it while true.
+  final bool isGoogleLoading;
 
   /// Called with the entered phone number (without country code).
   final ValueChanged<String>? onContinue;
@@ -124,15 +128,20 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
               children: [
                 Expanded(
                   child: _SocialButton(
-                    onTap: widget.onGoogle,
-                    icon: const Text(
-                      'G',
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF4285F4),
-                      ),
-                    ),
+                    onTap: widget.isGoogleLoading ? null : widget.onGoogle,
+                    icon: widget.isGoogleLoading
+                        ? const SizedBox.square(
+                            dimension: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          )
+                        : const Text(
+                            'G',
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF4285F4),
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 14),

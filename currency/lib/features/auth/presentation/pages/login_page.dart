@@ -1,20 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/di/injection.dart';
+import '../bloc/google_sign_in_cubit.dart';
 import '../widgets/auth_bottom_sheet.dart';
 
-/// UI-only login screen. No authentication logic is wired up yet.
+/// Login screen. Phone/OTP is UI-only; Google sign-in only obtains an ID token
+/// (backend verification is not implemented yet, so nobody is logged in).
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Column(
-        children: [
-          const Expanded(child: _HeroSection()),
-          const AuthBottomSheet(),
-        ],
+    return BlocProvider(
+      create: (_) => sl<GoogleSignInCubit>(),
+      child: BlocConsumer<GoogleSignInCubit, GoogleSignInState>(
+        listener: (context, state) {
+          if (state is GoogleSignInError) {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text(state.message)));
+          }
+          // GoogleSignInTokenReceived: hand the ID token to the backend once
+          // that endpoint exists. Do not treat it as a completed login.
+        },
+        builder: (context, state) {
+          return Scaffold(
+            backgroundColor: Colors.black,
+            body: Column(
+              children: [
+                const Expanded(child: _HeroSection()),
+                AuthBottomSheet(
+                  isGoogleLoading: state is GoogleSignInLoading,
+                  onGoogle: () => context.read<GoogleSignInCubit>().signIn(),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

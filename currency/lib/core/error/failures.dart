@@ -9,6 +9,10 @@ abstract class Failure extends Equatable {
   List<Object?> get props => [message];
 }
 
+class AuthFailure extends Failure {
+  const AuthFailure([super.message = 'Sign-in failed. Please try again']);
+}
+
 class ConversionFailure extends Failure {
   const ConversionFailure([super.message = 'Unable to convert currency']);
 }
