@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/di/injection.dart';
+import '../../../settings/presentation/bloc/start_screen_cubit.dart';
+
 import '../../../browse/presentation/pages/browse_page.dart';
 import '../../../converter/presentation/pages/converter_page.dart';
 import '../../../favourite/presentation/pages/favourite_page.dart';
@@ -14,12 +17,14 @@ class HomeShellPage extends StatefulWidget {
 }
 
 class _HomeShellPageState extends State<HomeShellPage> {
-  int _index = 0;
+  /// Opens on the start screen the user chose in Settings (Converter by
+  /// default).
+  late int _index = sl<StartScreenCubit>().state.tabIndex;
 
   /// Tabs the user has opened. A tab is only built the first time it is
   /// selected, so nothing a tab loads (e.g. the profile on Settings) happens
   /// at app launch. Visited tabs then stay alive in the [IndexedStack].
-  final _visited = <int>{0};
+  late final _visited = <int>{_index};
 
   static const _pageBuilders = <WidgetBuilder>[
     _converter,

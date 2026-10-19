@@ -8,6 +8,9 @@ import '../../../currency/presentation/widgets/currency_picker_sheet.dart';
 import '../../../notifications/presentation/widgets/notifications_sheet.dart';
 import '../../../profile/presentation/bloc/profile_cubit.dart';
 import '../../../profile/presentation/widgets/profile_header.dart';
+import '../../domain/entities/start_screen.dart';
+import '../bloc/start_screen_cubit.dart';
+import '../widgets/start_screen_sheet.dart';
 
 /// "Your currency" opens the currency sheet. The other rows are display-only
 /// for now: no tap actions are wired up yet.
@@ -73,11 +76,7 @@ class SettingsPage extends StatelessWidget {
               children: [
                 const _NotificationsRow(),
                 const _CurrencyRow(),
-                const _SettingsRow(
-                  icon: Icons.auto_awesome_rounded,
-                  title: 'Start screen',
-                  value: 'Converter',
-                ),
+                const _StartScreenRow(),
               ],
             ),
             const SizedBox(height: 20),
@@ -153,6 +152,25 @@ class _NotificationsRow extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+/// Shows the chosen start screen and opens the sheet to change it. Saved on
+/// the device only.
+class _StartScreenRow extends StatelessWidget {
+  const _StartScreenRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<StartScreenCubit, StartScreen>(
+      bloc: sl<StartScreenCubit>(),
+      builder: (context, screen) => _SettingsRow(
+        icon: Icons.auto_awesome_rounded,
+        title: 'Start screen',
+        value: screen.title,
+        onTap: () => showStartScreenSheet(context),
+      ),
     );
   }
 }

@@ -480,13 +480,16 @@ void main() {
       for (var i = 0; i < 30; i++) fiat('Q$i', 'Extra $i'),
     ];
     await openFavorites(tester);
-    final titleTop = tester.getTopLeft(find.text('Favorites')).dy;
+    final title = find.byWidgetPredicate(
+      (w) => w is Text && w.data == 'Favorites' && w.style?.fontSize == 34,
+    );
+    final titleTop = tester.getTopLeft(title).dy;
     final addTop = tester.getTopLeft(find.byIcon(Icons.add_rounded)).dy;
 
     await tester.drag(find.byType(ListView).first, const Offset(0, -600));
     await tester.pumpAndSettle();
 
-    expect(tester.getTopLeft(find.text('Favorites')).dy, titleTop);
+    expect(tester.getTopLeft(title).dy, titleTop);
     expect(tester.getTopLeft(find.byIcon(Icons.add_rounded)).dy, addTop);
     expect(find.text('Q0'), findsNothing); // scrolled out of view
   });

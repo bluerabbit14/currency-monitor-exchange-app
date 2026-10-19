@@ -5,6 +5,7 @@ import '../../../../core/di/injection.dart';
 import '../../domain/entities/asset_item.dart';
 import '../bloc/asset_picker_cubit.dart';
 import 'asset_flag.dart';
+import 'asset_search_and_tabs.dart';
 
 /// "Add to Favorites" bottom sheet: search, segmented tabs (Currency, Crypto,
 /// Commodities) and a check per asset. Tapping a row adds or removes that
@@ -38,12 +39,6 @@ Future<bool> showAssetPickerSheet(BuildContext context) async {
 const _sheetColor = Color(0xFFF1F1F6);
 const _muted = Color(0xFF8A8A93);
 const _blue = Color(0xFF0A84FF);
-
-String _tabLabel(AssetKind kind) => switch (kind) {
-  AssetKind.fiat => 'Currency',
-  AssetKind.crypto => 'Crypto',
-  AssetKind.commodity => 'Commodities',
-};
 
 class _AssetPicker extends StatefulWidget {
   const _AssetPicker();
@@ -106,14 +101,14 @@ class _AssetPickerState extends State<_AssetPicker> {
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                      child: _SearchField(
+                      child: AssetSearchField(
                         controller: _search,
                         onChanged: (v) => setState(() => _query = v),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                      child: _SegmentedTabs(
+                      child: AssetKindTabs(
                         selected: _kind,
                         onSelected: (kind) => setState(() => _kind = kind),
                       ),
@@ -240,82 +235,6 @@ class _Header extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _SearchField extends StatelessWidget {
-  const _SearchField({required this.controller, required this.onChanged});
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      elevation: 3,
-      shadowColor: const Color(0x14000000),
-      shape: const StadiumBorder(),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        textInputAction: TextInputAction.search,
-        decoration: const InputDecoration(
-          hintText: 'Search...',
-          hintStyle: TextStyle(color: _muted),
-          prefixIcon: Icon(Icons.search_rounded, color: Colors.black),
-          contentPadding: EdgeInsets.symmetric(vertical: 16),
-          border: InputBorder.none,
-        ),
-      ),
-    );
-  }
-}
-
-/// Pill-style segmented control: the selected tab is a black pill.
-class _SegmentedTabs extends StatelessWidget {
-  const _SegmentedTabs({required this.selected, required this.onSelected});
-
-  final AssetKind selected;
-  final ValueChanged<AssetKind> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (final kind in AssetKind.values)
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => onSelected(kind),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                height: 44,
-                alignment: Alignment.center,
-                margin: const EdgeInsets.only(right: 6),
-                decoration: BoxDecoration(
-                  color: kind == selected ? Colors.black : Colors.transparent,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      _tabLabel(kind),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: kind == selected ? Colors.white : _muted,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
     );
   }
 }

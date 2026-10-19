@@ -30,6 +30,7 @@ import '../../features/currency/domain/usecases/get_currencies.dart';
 import '../../features/currency/domain/usecases/preload_currencies.dart';
 import '../../features/currency/domain/usecases/set_base_currency.dart';
 import '../../features/currency/presentation/bloc/base_currency_cubit.dart';
+import '../../features/browse/presentation/bloc/browse_cubit.dart';
 import '../../features/favourite/data/datasources/favorite_remote_data_source.dart';
 import '../../features/favourite/data/repositories/favorite_repository_impl.dart';
 import '../../features/favourite/domain/repositories/favorite_repository.dart';
@@ -41,6 +42,10 @@ import '../../features/notifications/data/repositories/notification_repository_i
 import '../../features/notifications/domain/repositories/notification_repository.dart';
 import '../../features/notifications/domain/usecases/notification_usecases.dart';
 import '../../features/notifications/presentation/bloc/notifications_cubit.dart';
+import '../../features/settings/data/datasources/start_screen_local_data_source.dart';
+import '../../features/settings/data/repositories/start_screen_repository_impl.dart';
+import '../../features/settings/domain/repositories/start_screen_repository.dart';
+import '../../features/settings/presentation/bloc/start_screen_cubit.dart';
 import '../../features/profile/data/datasources/profile_remote_data_source.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/domain/repositories/profile_repository.dart';
@@ -111,9 +116,17 @@ Future<void> init() async {
     () => const NoPushTokenProvider(),
   );
 
+  // Settings (start screen, stored on the device)
+  sl.registerLazySingleton(() => StartScreenCubit(sl()));
+  sl.registerLazySingleton<StartScreenRepository>(
+    () => StartScreenRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton(() => const StartScreenLocalDataSource());
+
   // Favorites
   sl.registerFactory(() => FavoritesCubit(sl(), sl(), sl(), sl(), sl()));
   sl.registerFactory(() => AssetPickerCubit(sl(), sl(), sl()));
+  sl.registerFactory(() => BrowseCubit(sl(), sl(), sl()));
   sl.registerLazySingleton(() => GetFavorites(sl()));
   sl.registerLazySingleton(() => GetAssetCatalog(sl()));
   sl.registerLazySingleton(() => AddFavorite(sl()));

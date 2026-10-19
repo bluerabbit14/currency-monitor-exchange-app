@@ -41,7 +41,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.widget<FloatingNavBar>(navigationBar).currentIndex, 1);
-    expect(find.text('Currency list will appear here.'), findsOneWidget);
+    expect(find.text('Search...'), findsOneWidget);
 
     await tester.tap(
       find.descendant(of: navigationBar, matching: find.text('Favorites')),
@@ -55,9 +55,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.widget<FloatingNavBar>(navigationBar).currentIndex, 3);
-    // Favorites already fetched the profile (for the base currency) when it was
-    // opened; Settings fetches it again for its own cubit.
-    expect(profile.calls, 2);
+    // Browse and Favorites already fetched the profile (for the base currency)
+    // when opened; Settings fetches it again for its own cubit.
+    expect(profile.calls, 3);
     for (final row in [
       'Notifications',
       'Your currency',
