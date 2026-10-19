@@ -20,6 +20,8 @@ class AssetItem extends Equatable {
     required this.symbol,
     required this.name,
     required this.kind,
+    this.isFavorite = false,
+    this.createdAt,
   });
 
   final String id;
@@ -31,8 +33,24 @@ class AssetItem extends Equatable {
   final String name;
   final AssetKind kind;
 
+  /// Whether the signed-in user has favorited it. Only the grouped catalog
+  /// (`GET /assets/grouped`) fills this in.
+  final bool isFavorite;
+
+  /// When the user favorited it. Only favorites carry it.
+  final DateTime? createdAt;
+
+  AssetItem copyWith({bool? isFavorite}) => AssetItem(
+    id: id,
+    symbol: symbol,
+    name: name,
+    kind: kind,
+    isFavorite: isFavorite ?? this.isFavorite,
+    createdAt: createdAt,
+  );
+
   @override
-  List<Object?> get props => [id, symbol, name, kind];
+  List<Object?> get props => [id, symbol, name, kind, isFavorite, createdAt];
 }
 
 /// The current price of an asset in another currency.

@@ -16,14 +16,16 @@ class GetFavorites implements UseCase<List<AssetItem>, NoParams> {
       repository.getFavorites();
 }
 
-class GetAssets implements UseCase<List<AssetItem>, NoParams> {
-  const GetAssets(this.repository);
+class GetAssetCatalog
+    implements UseCase<Map<AssetKind, List<AssetItem>>, NoParams> {
+  const GetAssetCatalog(this.repository);
 
   final FavoriteRepository repository;
 
   @override
-  Future<Either<Failure, List<AssetItem>>> call(NoParams params) =>
-      repository.getAssets();
+  Future<Either<Failure, Map<AssetKind, List<AssetItem>>>> call(
+    NoParams params,
+  ) => repository.getAssetCatalog();
 }
 
 class AddFavorite implements UseCase<AssetItem, String> {

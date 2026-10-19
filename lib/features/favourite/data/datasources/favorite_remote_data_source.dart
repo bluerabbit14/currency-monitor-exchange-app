@@ -15,12 +15,23 @@ class FavoriteRemoteDataSource {
     return [for (final item in items) _favorite(item)];
   }
 
-  /// First page (up to 100) of the active asset catalog.
-  Future<List<AssetItem>> getAssets() async {
-    final page = await _client.get('/api/v1/assets', query: {'size': 100});
-    final content = page?['content'];
-    if (content is! List) throw const FormatException('Malformed asset page');
-    return [for (final item in content) _asset(item, idKey: 'id')];
+  /// Every active asset grouped by type, each flagged when it is a favorite.
+  /// Needs the access token (sent by the authenticated client).
+  Future<Map<AssetKind, List<AssetItem>>> getAssetCatalog() async {
+    final body = await _client.get('/api/v1/assets/grouped');
+    if (body == null) throw const FormatException('Malformed asset catalog');
+    final catalog = <AssetKind, List<AssetItem>>{};
+    for (final kind in AssetKind.values) {
+      final items = body[kind.name.toUpperCase()];
+      if (items is! List) {
+        throw const FormatException('Malformed asset catalog');
+      }
+      catalog[kind] = [
+        for (final item in items)
+          _asset(item, idKey: 'id', kind: kind, withFavorite: true),
+      ];
+    }
+    return catalog;
   }
 
   Future<AssetItem> addFavorite(String assetId) async {
@@ -67,15 +78,30 @@ class FavoriteRemoteDataSource {
 
   static AssetItem _favorite(Object? raw) => _asset(raw, idKey: 'assetId');
 
-  static AssetItem _asset(Object? raw, {required String idKey}) {
+  static AssetItem _asset(
+    Object? raw, {
+    required String idKey,
+    AssetKind? kind,
+    bool withFavorite = false,
+  }) {
     if (raw is! Map) throw const FormatException('Malformed asset');
     final id = raw[idKey];
     final symbol = raw['symbol'];
     final name = raw['name'];
-    final kind = AssetKind.fromApi(raw['type']);
-    if (id is! String || symbol is! String || name is! String || kind == null) {
+    final assetKind = kind ?? AssetKind.fromApi(raw['type']);
+    if (id is! String ||
+        symbol is! String ||
+        name is! String ||
+        assetKind == null) {
       throw const FormatException('Malformed asset');
     }
-    return AssetItem(id: id, symbol: symbol, name: name, kind: kind);
+    return AssetItem(
+      id: id,
+      symbol: symbol,
+      name: name,
+      kind: assetKind,
+      isFavorite: withFavorite && raw['favorite'] == true,
+      createdAt: DateTime.tryParse('${raw['createdAt'] ?? ''}'),
+    );
   }
 }

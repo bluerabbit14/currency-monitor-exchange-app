@@ -19,12 +19,16 @@ typedef AlertSubmit = Future<String?> Function(
 ///
 /// [quote] is the user's base currency: targets are expressed in it. When
 /// editing, the watched currency is fixed (the backend cannot change a pair).
+/// [fixedBase] (with [fixedName]) fixes it when creating too, e.g. an alert
+/// started from a favorite.
 Future<bool> showAlertEditorSheet(
   BuildContext context, {
   required String quote,
   required AlertSubmit onSubmit,
   PriceAlert? existing,
   Future<String?> Function()? onDelete,
+  String? fixedBase,
+  String? fixedName,
 }) async {
   final changed = await showModalBottomSheet<bool>(
     context: context,
@@ -43,6 +47,8 @@ Future<bool> showAlertEditorSheet(
         existing: existing,
         onSubmit: onSubmit,
         onDelete: onDelete,
+        fixedBase: fixedBase,
+        fixedName: fixedName,
       ),
     ),
   );
@@ -67,12 +73,16 @@ class _AlertEditor extends StatefulWidget {
     required this.onSubmit,
     this.existing,
     this.onDelete,
+    this.fixedBase,
+    this.fixedName,
   });
 
   final String quote;
   final PriceAlert? existing;
   final AlertSubmit onSubmit;
   final Future<String?> Function()? onDelete;
+  final String? fixedBase;
+  final String? fixedName;
 
   @override
   State<_AlertEditor> createState() => _AlertEditorState();
@@ -86,6 +96,9 @@ class _AlertEditorState extends State<_AlertEditor> {
   String? _error;
 
   bool get _editing => widget.existing != null;
+
+  /// The watched asset cannot be changed: editing, or started from a favorite.
+  bool get _baseFixed => _editing || widget.fixedBase != null;
 
   @override
   void initState() {
@@ -106,7 +119,7 @@ class _AlertEditorState extends State<_AlertEditor> {
   double? get _rate => parseTargetRate(_price.text);
 
   bool get _canSubmit =>
-      !_busy && _rate != null && (_editing || _currency != null);
+      !_busy && _rate != null && (_baseFixed || _currency != null);
 
   Future<void> _pickCurrency() async {
     final picked = await chooseCurrency(
@@ -124,7 +137,7 @@ class _AlertEditorState extends State<_AlertEditor> {
 
   Future<void> _submit() async {
     final rate = _rate;
-    final base = widget.existing?.base ?? _currency?.code;
+    final base = widget.existing?.base ?? widget.fixedBase ?? _currency?.code;
     if (rate == null || base == null || _busy) return;
     FocusScope.of(context).unfocus();
     setState(() {
@@ -206,10 +219,11 @@ class _AlertEditorState extends State<_AlertEditor> {
             ),
             const _Label('Allowed currencies'),
             _CurrencyRow(
-              editing: _editing,
-              code: widget.existing?.base ?? _currency?.code,
-              name: _currency?.name,
-              onTap: _editing || _busy ? null : _pickCurrency,
+              editing: _baseFixed,
+              code:
+                  widget.existing?.base ?? widget.fixedBase ?? _currency?.code,
+              name: widget.fixedName ?? _currency?.name,
+              onTap: _baseFixed || _busy ? null : _pickCurrency,
             ),
             const SizedBox(height: 22),
             const _Label('Notify when price is'),

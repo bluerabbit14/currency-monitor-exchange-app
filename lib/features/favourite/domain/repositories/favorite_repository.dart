@@ -7,8 +7,9 @@ abstract class FavoriteRepository {
   /// The user's favorite assets, newest first.
   Future<Either<Failure, List<AssetItem>>> getFavorites();
 
-  /// Every active asset (for choosing what to favorite).
-  Future<Either<Failure, List<AssetItem>>> getAssets();
+  /// Every active asset grouped by type, each flagged when it is a favorite
+  /// (for choosing what to favorite).
+  Future<Either<Failure, Map<AssetKind, List<AssetItem>>>> getAssetCatalog();
 
   /// Adding twice is harmless (the backend returns the existing favorite).
   Future<Either<Failure, AssetItem>> addFavorite(String assetId);

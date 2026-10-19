@@ -42,6 +42,10 @@ dependencies:
   dio: ^5.11.1
   flutter_secure_storage: ^11.2.0
   country_flags: ^4.1.2
+  font_awesome_flutter: ^11.0.0
+  crypto_icons: ^1.0.0
+  flutter_slidable: ^4.0.3
+  intl: ^0.20.3
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +68,14 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # The crypto_icons package ships this font but leaves the family without a
+  # fontPackage, so the app has to register it itself (copied from the package,
+  # MIT licence).
+  fonts:
+    - family: CryptocurrencyIcons
+      fonts:
+        - asset: assets/fonts/cryptocurrency-icons.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

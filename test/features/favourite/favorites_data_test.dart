@@ -54,6 +54,31 @@ void main() {
       expect(items.first.id, 'id-INR');
     });
 
+    test('favorites are arranged by createdAt, newest first', () async {
+      Map<String, dynamic> at(String symbol, String? createdAt) {
+        final json = favoriteJson(symbol, symbol, 'FIAT');
+        if (createdAt == null) {
+          json.remove('createdAt');
+        } else {
+          json['createdAt'] = createdAt;
+        }
+        return json;
+      }
+
+      adapter.handler = (_) => listBody([
+        at('OLD', '2026-10-01T10:00:00Z'),
+        at('NEW', '2026-10-12T10:00:00Z'),
+        at('NONE', null),
+        at('MID', '2026-10-05T10:00:00Z'),
+      ]);
+
+      final items = (await repo.getFavorites()).getOrElse(() => throw 'x');
+
+      // Newest first; one with no timestamp goes last.
+      expect(items.map((a) => a.symbol), ['NEW', 'MID', 'OLD', 'NONE']);
+      expect(items.first.createdAt, DateTime.utc(2026, 10, 12, 10));
+    });
+
     test('an empty list is fine; a malformed item is a failure', () async {
       adapter.handler = (_) => listBody([]);
       expect((await repo.getFavorites()).getOrElse(() => throw 'x'), isEmpty);
@@ -89,24 +114,42 @@ void main() {
       expect(adapter.requests.single.path, '/api/v1/users/me/favorites/id-EUR');
     });
 
-    test('lists the asset catalog from the page content', () async {
+    test('loads the grouped catalog with favorite flags', () async {
       adapter.handler = (_) => ok({
-        'content': [
+        'FIAT': [
           {
             'id': 'id-GBP',
             'symbol': 'GBP',
             'name': 'Pound',
-            'type': 'FIAT',
+            'favorite': true,
             'status': 'ACTIVE',
           },
         ],
+        'CRYPTO': [
+          {
+            'id': 'id-BTC',
+            'symbol': 'BTC',
+            'name': 'Bitcoin',
+            'favorite': false,
+          },
+        ],
+        'COMMODITY': [],
       });
 
-      final assets = (await repo.getAssets()).getOrElse(() => throw 'x');
+      final catalog = (await repo.getAssetCatalog()).getOrElse(() => throw 'x');
 
-      expect(adapter.requests.single.path, '/api/v1/assets');
-      expect(adapter.requests.single.queryParameters, {'size': 100});
-      expect(assets.single.symbol, 'GBP');
+      expect(adapter.requests.single.path, '/api/v1/assets/grouped');
+      final gbp = catalog[AssetKind.fiat]!.single;
+      expect(gbp.symbol, 'GBP');
+      expect(gbp.kind, AssetKind.fiat);
+      expect(gbp.isFavorite, isTrue);
+      expect(catalog[AssetKind.crypto]!.single.isFavorite, isFalse);
+      expect(catalog[AssetKind.commodity], isEmpty);
+    });
+
+    test('a catalog missing a group is a failure', () async {
+      adapter.handler = (_) => ok({'FIAT': []});
+      expect((await repo.getAssetCatalog()).isLeft(), isTrue);
     });
 
     test('errors map to messages', () async {

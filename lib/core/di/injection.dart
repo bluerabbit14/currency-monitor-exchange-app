@@ -113,9 +113,9 @@ Future<void> init() async {
 
   // Favorites
   sl.registerFactory(() => FavoritesCubit(sl(), sl(), sl(), sl(), sl()));
-  sl.registerFactory(() => AssetPickerCubit(sl()));
+  sl.registerFactory(() => AssetPickerCubit(sl(), sl(), sl()));
   sl.registerLazySingleton(() => GetFavorites(sl()));
-  sl.registerLazySingleton(() => GetAssets(sl()));
+  sl.registerLazySingleton(() => GetAssetCatalog(sl()));
   sl.registerLazySingleton(() => AddFavorite(sl()));
   sl.registerLazySingleton(() => RemoveFavorite(sl()));
   sl.registerLazySingleton(() => GetAssetQuote(sl()));

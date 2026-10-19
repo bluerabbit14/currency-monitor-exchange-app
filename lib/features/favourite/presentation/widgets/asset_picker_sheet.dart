@@ -6,18 +6,16 @@ import '../../domain/entities/asset_item.dart';
 import '../bloc/asset_picker_cubit.dart';
 import 'asset_flag.dart';
 
-/// Bottom sheet to choose an asset to favorite. Resolves to the tapped asset,
-/// or null when dismissed. Assets whose id is in [excludeIds] (already
-/// favorites) are not offered.
-Future<AssetItem?> showAssetPickerSheet(
-  BuildContext context, {
-  Set<String> excludeIds = const {},
-}) {
-  return showModalBottomSheet<AssetItem>(
+/// "Add to Favorites" bottom sheet: search, segmented tabs (Currency, Crypto,
+/// Commodities) and a check per asset. Tapping a row adds or removes that
+/// favorite right away. Resolves to true when anything changed, so the page
+/// behind can refresh.
+Future<bool> showAssetPickerSheet(BuildContext context) async {
+  final changed = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: Colors.white,
+    backgroundColor: _sheetColor,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
     ),
@@ -29,20 +27,26 @@ Future<AssetItem?> showAssetPickerSheet(
         heightFactor: 0.94,
         child: BlocProvider(
           create: (_) => sl<AssetPickerCubit>()..load(),
-          child: _AssetPicker(excludeIds: excludeIds),
+          child: const _AssetPicker(),
         ),
       ),
     ),
   );
+  return changed ?? false;
 }
 
+const _sheetColor = Color(0xFFF1F1F6);
 const _muted = Color(0xFF8A8A93);
-const _fieldColor = Color(0xFFF1F1F6);
+const _blue = Color(0xFF0A84FF);
+
+String _tabLabel(AssetKind kind) => switch (kind) {
+  AssetKind.fiat => 'Currency',
+  AssetKind.crypto => 'Crypto',
+  AssetKind.commodity => 'Commodities',
+};
 
 class _AssetPicker extends StatefulWidget {
-  const _AssetPicker({required this.excludeIds});
-
-  final Set<String> excludeIds;
+  const _AssetPicker();
 
   @override
   State<_AssetPicker> createState() => _AssetPickerState();
@@ -51,6 +55,7 @@ class _AssetPicker extends StatefulWidget {
 class _AssetPickerState extends State<_AssetPicker> {
   final _search = TextEditingController();
   String _query = '';
+  AssetKind _kind = AssetKind.fiat;
 
   @override
   void dispose() {
@@ -58,57 +63,77 @@ class _AssetPickerState extends State<_AssetPicker> {
     super.dispose();
   }
 
+  Future<void> _toggle(BuildContext context, AssetItem asset) async {
+    final error = await context.read<AssetPickerCubit>().toggle(asset);
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text("Couldn't update. $error")));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // The whole sheet scrolls, so with the keyboard open on a short screen the
-    // header and search field can never overflow the space that is left.
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD1D1D6),
-                  borderRadius: BorderRadius.circular(3),
-                ),
+    // The sheet has its own Scaffold so snack bars show above it. The header,
+    // search and tabs stay put and only the asset list scrolls. On a very
+    // short screen (keyboard open) the fixed part is capped at 60% of the
+    // height and scrolls, so it can never overflow.
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: false,
+      body: LayoutBuilder(
+        builder: (context, constraints) => Column(
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: constraints.maxHeight * 0.6,
               ),
-              _Header(onClose: () => Navigator.of(context).pop()),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 4, 24, 8),
-                child: TextField(
-                  controller: _search,
-                  onChanged: (v) => setState(() => _query = v),
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: 'Search currency, coin or metal...',
-                    hintStyle: const TextStyle(color: _muted),
-                    prefixIcon: const Icon(Icons.search_rounded, color: _muted),
-                    filled: true,
-                    fillColor: _fieldColor,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: BorderSide.none,
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC7C7CC),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
                     ),
-                  ),
+                    _Header(
+                      onDone: () => Navigator.of(context)
+                          .pop(context.read<AssetPickerCubit>().state.changed),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                      child: _SearchField(
+                        controller: _search,
+                        onChanged: (v) => setState(() => _query = v),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: _SegmentedTabs(
+                        selected: _kind,
+                        onSelected: (kind) => setState(() => _kind = kind),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+            Expanded(
+              child: BlocBuilder<AssetPickerCubit, AssetPickerState>(
+                builder: (context, state) => _body(context, state),
+              ),
+            ),
+          ],
         ),
-        BlocBuilder<AssetPickerCubit, AssetPickerState>(
-          builder: (context, state) => _body(context, state),
-        ),
-      ],
+      ),
     );
   }
 
-  static Widget _centered(Widget child) =>
-      SliverFillRemaining(hasScrollBody: false, child: Center(child: child));
+  static Widget _centered(Widget child) => Center(child: child);
 
   Widget _body(BuildContext context, AssetPickerState state) {
     switch (state.status) {
@@ -136,8 +161,8 @@ class _AssetPickerState extends State<_AssetPicker> {
         );
       case AssetPickerStatus.ready:
         final q = _query.trim().toLowerCase();
-        final items = state.assets
-            .where((a) => !widget.excludeIds.contains(a.id))
+        final items = state
+            .assetsOf(_kind)
             .where(
               (a) =>
                   q.isEmpty ||
@@ -147,26 +172,19 @@ class _AssetPickerState extends State<_AssetPicker> {
             .toList();
         if (items.isEmpty) {
           return _centered(
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                state.assets.isNotEmpty && q.isEmpty
-                    ? 'Everything is already in your favorites'
-                    : 'Nothing found',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: _muted),
-              ),
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('Nothing found', style: TextStyle(color: _muted)),
             ),
           );
         }
-        return SliverPadding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          sliver: SliverList.builder(
-            itemCount: items.length,
-            itemBuilder: (context, i) => _AssetTile(
-              asset: items[i],
-              onTap: () => Navigator.of(context).pop(items[i]),
-            ),
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          itemCount: items.length,
+          itemBuilder: (context, i) => _AssetTile(
+            asset: items[i],
+            busy: state.pending.contains(items[i].id),
+            onTap: () => _toggle(context, items[i]),
           ),
         );
     }
@@ -174,14 +192,14 @@ class _AssetPickerState extends State<_AssetPicker> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.onClose});
+  const _Header({required this.onDone});
 
-  final VoidCallback onClose;
+  final VoidCallback onDone;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: SizedBox(
         height: 52,
         child: Stack(
@@ -191,23 +209,29 @@ class _Header extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Material(
                 color: Colors.white,
-                shape: const CircleBorder(),
+                shape: const StadiumBorder(),
                 elevation: 4,
                 shadowColor: const Color(0x22000000),
                 child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: onClose,
-                  child: const SizedBox.square(
-                    dimension: 44,
-                    child: Icon(Icons.close_rounded, size: 24),
+                  customBorder: const StadiumBorder(),
+                  onTap: onDone,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 22, vertical: 13),
+                    child: Text(
+                      'Done',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 56),
+              padding: EdgeInsets.symmetric(horizontal: 96),
               child: Text(
-                'Add favorite',
+                'Add to Favorites',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
@@ -220,50 +244,163 @@ class _Header extends StatelessWidget {
   }
 }
 
+class _SearchField extends StatelessWidget {
+  const _SearchField({required this.controller, required this.onChanged});
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      elevation: 3,
+      shadowColor: const Color(0x14000000),
+      shape: const StadiumBorder(),
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        decoration: const InputDecoration(
+          hintText: 'Search...',
+          hintStyle: TextStyle(color: _muted),
+          prefixIcon: Icon(Icons.search_rounded, color: Colors.black),
+          contentPadding: EdgeInsets.symmetric(vertical: 16),
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+}
+
+/// Pill-style segmented control: the selected tab is a black pill.
+class _SegmentedTabs extends StatelessWidget {
+  const _SegmentedTabs({required this.selected, required this.onSelected});
+
+  final AssetKind selected;
+  final ValueChanged<AssetKind> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (final kind in AssetKind.values)
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onSelected(kind),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: 44,
+                alignment: Alignment.center,
+                margin: const EdgeInsets.only(right: 6),
+                decoration: BoxDecoration(
+                  color: kind == selected ? Colors.black : Colors.transparent,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      _tabLabel(kind),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: kind == selected ? Colors.white : _muted,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _AssetTile extends StatelessWidget {
-  const _AssetTile({required this.asset, required this.onTap});
+  const _AssetTile({
+    required this.asset,
+    required this.busy,
+    required this.onTap,
+  });
 
   final AssetItem asset;
+  final bool busy;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    // Only the check circle is tappable, not the whole row.
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          AssetFlag(asset: asset, width: 40),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  asset.symbol,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  asset.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 15, color: _muted),
+                ),
+              ],
+            ),
+          ),
+          _Check(
+            key: ValueKey('favorite-toggle-${asset.id}'),
+            checked: asset.isFavorite,
+            onTap: busy ? null : onTap,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Check extends StatelessWidget {
+  const _Check({super.key, required this.checked, required this.onTap});
+
+  final bool checked;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // A 48px hit area around the 30px circle.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            AssetFlag(asset: asset),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    asset.symbol,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    asset.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14, color: _muted),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.add_circle_outline_rounded,
-              color: Color(0xFF1E88FF),
-            ),
-          ],
+        padding: const EdgeInsets.all(9),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: checked ? _blue : Colors.transparent,
+            border: checked
+                ? null
+                : Border.all(color: const Color(0xFFC7C7CC), width: 2),
+          ),
+          child: checked
+              ? const Icon(Icons.check_rounded, size: 20, color: Colors.white)
+              : null,
         ),
       ),
     );

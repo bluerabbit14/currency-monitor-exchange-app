@@ -15,11 +15,11 @@ class FavoriteRepositoryImpl implements FavoriteRepository {
 
   @override
   Future<Either<Failure, List<AssetItem>>> getFavorites() =>
-      guardApi(remote.getFavorites);
+      guardApi(() async => sortNewestFirst(await remote.getFavorites()));
 
   @override
-  Future<Either<Failure, List<AssetItem>>> getAssets() =>
-      guardApi(remote.getAssets);
+  Future<Either<Failure, Map<AssetKind, List<AssetItem>>>> getAssetCatalog() =>
+      guardApi(remote.getAssetCatalog);
 
   @override
   Future<Either<Failure, AssetItem>> addFavorite(String assetId) =>
@@ -61,4 +61,22 @@ class FavoriteRepositoryImpl implements FavoriteRepository {
       return AssetQuote(rate: rate, change: change);
     });
   }
+}
+
+/// Orders favorites by when they were added, newest first. Favorites without
+/// a timestamp keep their given order, after the ones that have one.
+List<AssetItem> sortNewestFirst(List<AssetItem> items) {
+  final indexed = [for (var i = 0; i < items.length; i++) (i, items[i])];
+  indexed.sort((a, b) {
+    final x = a.$2.createdAt;
+    final y = b.$2.createdAt;
+    if (x != null && y != null) {
+      final byTime = y.compareTo(x);
+      return byTime != 0 ? byTime : a.$1.compareTo(b.$1);
+    }
+    if (x != null) return -1;
+    if (y != null) return 1;
+    return a.$1.compareTo(b.$1);
+  });
+  return [for (final e in indexed) e.$2];
 }

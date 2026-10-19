@@ -112,14 +112,14 @@ void main() {
       expect(find.text('Indian Rupee'), findsOneWidget);
       expect(find.text('United Arab Emirates Dirham'), findsOneWidget);
 
-      expect(find.text('0.038306AED'), findsOneWidget);
-      expect(find.text('+0.000018AED'), findsOneWidget);
-      expect(find.text('3.67AED'), findsOneWidget);
-      expect(find.text('+0.0002AED'), findsOneWidget);
-      expect(find.text('4.22AED'), findsOneWidget);
-      expect(find.text('+0.004105AED'), findsOneWidget);
-      expect(find.text('1.00AED'), findsOneWidget);
-      expect(find.text('0.00AED'), findsOneWidget);
+      expect(find.text('AED 0.038306'), findsOneWidget);
+      expect(find.text('+AED 0.000018'), findsOneWidget);
+      expect(find.text('AED 3.67'), findsOneWidget);
+      expect(find.text('+AED 0.0002'), findsOneWidget);
+      expect(find.text('AED 4.22'), findsOneWidget);
+      expect(find.text('+AED 0.004105'), findsOneWidget);
+      expect(find.text('AED 1.00'), findsOneWidget);
+      expect(find.text('AED 0.00'), findsOneWidget);
     });
 
     testWidgets('prices are requested in the base currency', (tester) async {
@@ -135,7 +135,7 @@ void main() {
       await openFavorites(tester);
 
       expect(favorites.quoteRequests, contains('INR/USD'));
-      expect(find.text('3.67USD'), findsOneWidget);
+      expect(find.text(r'$3.67'), findsOneWidget);
     });
 
     testWidgets('if the profile cannot be loaded, prices fall back to USD', (
@@ -154,12 +154,12 @@ void main() {
 
       Color colorOf(String text) =>
           tester.widget<Text>(find.text(text)).style!.color!;
-      expect(find.text('-0.000181AED'), findsOneWidget);
+      expect(find.text('-AED 0.000181'), findsOneWidget);
       expect(
-        colorOf('-0.000181AED').toARGB32(),
-        isNot(colorOf('+0.0002AED').toARGB32()),
+        colorOf('-AED 0.000181').toARGB32(),
+        isNot(colorOf('+AED 0.0002').toARGB32()),
       );
-      expect(colorOf('+0.0002AED'), colorOf('+0.0002AED'));
+      expect(colorOf('+AED 0.0002'), colorOf('+AED 0.0002'));
     });
 
     testWidgets('crypto and commodities get a badge instead of a flag', (
@@ -170,9 +170,9 @@ void main() {
 
       expect(find.text('Bitcoin'), findsOneWidget);
       expect(find.text('Gold'), findsOneWidget);
-      expect(find.text('250000.50AED'), findsOneWidget);
-      expect(find.text('+1200.25AED'), findsOneWidget);
-      expect(find.text('-15.00AED'), findsOneWidget);
+      expect(find.text('AED 250,000.50'), findsOneWidget);
+      expect(find.text('+AED 1,200.25'), findsOneWidget);
+      expect(find.text('-AED 15.00'), findsOneWidget);
     });
 
     testWidgets(
@@ -182,7 +182,7 @@ void main() {
         await openFavorites(tester);
 
         expect(find.text('—'), findsOneWidget);
-        expect(find.text('3.67AED'), findsOneWidget);
+        expect(find.text('AED 3.67'), findsOneWidget);
       },
     );
 
@@ -208,14 +208,14 @@ void main() {
       expect(find.text('INR'), findsOneWidget);
       expect(find.text('USD'), findsOneWidget);
       expect(find.text('···'), findsNWidgets(2));
-      expect(find.text('3.67AED'), findsNothing);
+      expect(find.text('AED 3.67'), findsNothing);
 
       gated.gate.complete();
       await tester.pumpAndSettle();
 
       expect(find.text('···'), findsNothing);
-      expect(find.text('3.67AED'), findsOneWidget);
-      expect(find.text('0.038306AED'), findsOneWidget);
+      expect(find.text('AED 3.67'), findsOneWidget);
+      expect(find.text('AED 0.038306'), findsOneWidget);
     });
 
     testWidgets('empty state offers to add a favorite', (tester) async {
@@ -280,48 +280,147 @@ void main() {
     Finder inSheet(Finder f) =>
         find.descendant(of: find.byType(BottomSheet), matching: f);
 
-    testWidgets('the picker lists assets that are not favorites yet', (
+    testWidgets('the sheet has Done, search, tabs and a check per favorite', (
       tester,
     ) async {
       await openPicker(tester);
 
-      expect(inSheet(find.text('Add favorite')), findsOneWidget);
-      expect(inSheet(find.text('Bitcoin')), findsOneWidget);
-      expect(inSheet(find.text('Gold')), findsOneWidget);
-      // Already favorites: not offered again.
-      expect(inSheet(find.text('Euro')), findsNothing);
-      expect(inSheet(find.text('Indian Rupee')), findsNothing);
+      expect(inSheet(find.text('Add to Favorites')), findsOneWidget);
+      expect(inSheet(find.text('Done')), findsOneWidget);
+      expect(inSheet(find.text('Search...')), findsOneWidget);
+      expect(inSheet(find.text('Currency')), findsOneWidget);
+      expect(inSheet(find.text('Crypto')), findsOneWidget);
+      expect(inSheet(find.text('Commodities')), findsOneWidget);
+      // The Currency tab lists every currency, favorites included.
+      expect(inSheet(find.text('Euro')), findsOneWidget);
+      expect(inSheet(find.text('Bitcoin')), findsNothing);
+      // INR, USD, EUR and AED are favorites.
+      expect(inSheet(find.byIcon(Icons.check_rounded)), findsNWidgets(4));
     });
 
-    testWidgets('search filters by symbol or name', (tester) async {
+    testWidgets(
+      'only the asset list scrolls; the header, search and tabs stay',
+      (tester) async {
+        favorites.assets = [
+          ...favorites.assets,
+          for (var i = 0; i < 40; i++) fiat('Q$i', 'Extra $i'),
+        ];
+        await openPicker(tester);
+        final titleTop = tester
+            .getTopLeft(inSheet(find.text('Add to Favorites')))
+            .dy;
+        final tabsTop = tester.getTopLeft(inSheet(find.text('Crypto'))).dy;
+        final firstRowTop = tester
+            .getTopLeft(inSheet(find.text('Indian Rupee')))
+            .dy;
+
+        await tester.drag(
+          inSheet(find.byType(ListView)),
+          const Offset(0, -400),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          tester.getTopLeft(inSheet(find.text('Add to Favorites'))).dy,
+          titleTop,
+        );
+        expect(tester.getTopLeft(inSheet(find.text('Crypto'))).dy, tabsTop);
+        expect(
+          inSheet(find.text('Indian Rupee')),
+          findsNothing,
+        ); // scrolled away
+        expect(firstRowTop, greaterThan(tabsTop));
+      },
+    );
+
+    testWidgets('the tabs switch between currencies, crypto and commodities', (
+      tester,
+    ) async {
       await openPicker(tester);
 
-      await tester.enterText(inSheet(find.byType(TextField)), 'bit');
-      await tester.pump();
+      await tester.tap(inSheet(find.text('Crypto')));
+      await tester.pumpAndSettle();
       expect(inSheet(find.text('Bitcoin')), findsOneWidget);
+      expect(inSheet(find.text('Euro')), findsNothing);
       expect(inSheet(find.text('Gold')), findsNothing);
 
-      await tester.enterText(inSheet(find.byType(TextField)), 'xau');
-      await tester.pump();
+      await tester.tap(inSheet(find.text('Commodities')));
+      await tester.pumpAndSettle();
       expect(inSheet(find.text('Gold')), findsOneWidget);
-
-      await tester.enterText(inSheet(find.byType(TextField)), 'zzz');
-      await tester.pump();
-      expect(inSheet(find.text('Nothing found')), findsOneWidget);
+      expect(inSheet(find.text('Bitcoin')), findsNothing);
     });
 
-    testWidgets('tapping an asset adds it, closes the sheet and prices it', (
+    testWidgets('search filters within the selected tab', (tester) async {
+      await openPicker(tester);
+
+      await tester.enterText(inSheet(find.byType(TextField)), 'eur');
+      await tester.pump();
+      expect(inSheet(find.text('Euro')), findsOneWidget);
+      expect(inSheet(find.text('US Dollar')), findsNothing);
+
+      // Bitcoin is on another tab.
+      await tester.enterText(inSheet(find.byType(TextField)), 'bit');
+      await tester.pump();
+      expect(inSheet(find.text('Nothing found')), findsOneWidget);
+      await tester.tap(inSheet(find.text('Crypto')));
+      await tester.pumpAndSettle();
+      expect(inSheet(find.text('Bitcoin')), findsOneWidget);
+    });
+
+    testWidgets('tapping an asset favorites it and the sheet stays open', (
       tester,
     ) async {
       await openPicker(tester);
+      await tester.tap(inSheet(find.text('Crypto')));
+      await tester.pumpAndSettle();
+      expect(inSheet(find.byIcon(Icons.check_rounded)), findsNothing);
 
-      await tester.tap(inSheet(find.text('Bitcoin')));
+      await tester.tap(find.byKey(const ValueKey('favorite-toggle-id-BTC')));
       await tester.pumpAndSettle();
 
       expect(favorites.added, ['id-BTC']);
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(inSheet(find.byIcon(Icons.check_rounded)), findsOneWidget);
+    });
+
+    testWidgets('tapping the row text does nothing; only the check toggles', (
+      tester,
+    ) async {
+      await openPicker(tester);
+
+      await tester.tap(inSheet(find.text('Euro')));
+      await tester.pumpAndSettle();
+
+      expect(favorites.added, isEmpty);
+      expect(favorites.removed, isEmpty);
+      expect(inSheet(find.byIcon(Icons.check_rounded)), findsNWidgets(4));
+    });
+
+    testWidgets('tapping a favorite removes it', (tester) async {
+      await openPicker(tester);
+
+      await tester.tap(find.byKey(const ValueKey('favorite-toggle-id-EUR')));
+      await tester.pumpAndSettle();
+
+      expect(favorites.removed, ['id-EUR']);
+      expect(inSheet(find.byIcon(Icons.check_rounded)), findsNWidgets(3));
+    });
+
+    testWidgets('Done closes the sheet and the list shows the new favorite', (
+      tester,
+    ) async {
+      await openPicker(tester);
+      await tester.tap(inSheet(find.text('Crypto')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('favorite-toggle-id-BTC')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(inSheet(find.text('Done')));
+      await tester.pumpAndSettle();
+
       expect(find.byType(BottomSheet), findsNothing);
       expect(find.text('Bitcoin'), findsOneWidget);
-      expect(find.text('250000.50AED'), findsOneWidget);
+      expect(find.text('AED 250,000.50'), findsOneWidget);
       // Newest first.
       expect(
         tester.getTopLeft(find.text('Bitcoin')).dy,
@@ -329,28 +428,34 @@ void main() {
       );
     });
 
-    testWidgets('a failed add says why and changes nothing', (tester) async {
-      favorites.addFailure = const ServerFailure('Asset not found');
+    testWidgets('Done without changes does not reload the list', (
+      tester,
+    ) async {
       await openPicker(tester);
+      final loadsBefore = favorites.loads;
 
-      await tester.tap(inSheet(find.text('Bitcoin')));
+      await tester.tap(inSheet(find.text('Done')));
       await tester.pumpAndSettle();
 
       expect(find.byType(BottomSheet), findsNothing);
-      expect(find.text("Couldn't add BTC. Asset not found"), findsOneWidget);
-      expect(find.text('Bitcoin'), findsNothing);
+      expect(favorites.loads, loadsBefore);
     });
 
-    testWidgets('when everything is already a favorite the picker says so', (
+    testWidgets('a failed add puts the check back and says why', (
       tester,
     ) async {
-      favorites.assets = [inrAsset, usdAsset];
+      favorites.addFailure = const ServerFailure('Asset not found');
       await openPicker(tester);
+      await tester.tap(inSheet(find.text('Crypto')));
+      await tester.pumpAndSettle();
 
-      expect(
-        inSheet(find.text('Everything is already in your favorites')),
-        findsOneWidget,
-      );
+      await tester.tap(find.byKey(const ValueKey('favorite-toggle-id-BTC')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(inSheet(find.byIcon(Icons.check_rounded)), findsNothing);
+      // Shown by both the page and the sheet scaffolds.
+      expect(find.text("Couldn't update. Asset not found"), findsWidgets);
     });
 
     testWidgets('a failed asset load offers Retry', (tester) async {
@@ -364,22 +469,73 @@ void main() {
       favorites.assetsFailure = null;
       await tester.tap(inSheet(find.text('Retry')));
       await tester.pumpAndSettle();
-      expect(inSheet(find.text('Bitcoin')), findsOneWidget);
-    });
-
-    testWidgets('closing the picker adds nothing', (tester) async {
-      await openPicker(tester);
-      await tester.tap(find.byIcon(Icons.close_rounded));
-      await tester.pumpAndSettle();
-      expect(favorites.added, isEmpty);
+      expect(inSheet(find.text('Euro')), findsOneWidget);
     });
   });
 
-  group('removing', () {
-    testWidgets('swiping a row left removes the favorite', (tester) async {
-      await openFavorites(tester);
+  testWidgets('only the list scrolls; the title and add button stay put', (
+    tester,
+  ) async {
+    favorites.favorites = [
+      for (var i = 0; i < 30; i++) fiat('Q$i', 'Extra $i'),
+    ];
+    await openFavorites(tester);
+    final titleTop = tester.getTopLeft(find.text('Favorites')).dy;
+    final addTop = tester.getTopLeft(find.byIcon(Icons.add_rounded)).dy;
 
-      await tester.drag(find.text('EUR'), const Offset(-700, 0));
+    await tester.drag(find.byType(ListView).first, const Offset(0, -600));
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(find.text('Favorites')).dy, titleTop);
+    expect(tester.getTopLeft(find.byIcon(Icons.add_rounded)).dy, addTop);
+    expect(find.text('Q0'), findsNothing); // scrolled out of view
+  });
+
+  group('removing', () {
+    Future<void> slide(WidgetTester tester, String symbol) async {
+      await tester.drag(find.text(symbol), const Offset(-300, 0));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('sliding a row only reveals Alert and Delete', (tester) async {
+      await openFavorites(tester);
+      expect(find.text('Delete'), findsNothing);
+
+      await slide(tester, 'EUR');
+
+      expect(find.text('Alert'), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
+      expect(favorites.removed, isEmpty);
+      expect(find.text('EUR'), findsOneWidget);
+    });
+
+    testWidgets('Delete asks first and cancelling removes nothing', (
+      tester,
+    ) async {
+      await openFavorites(tester);
+      await slide(tester, 'EUR');
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(find.text('Remove from favorites?'), findsOneWidget);
+      expect(favorites.removed, isEmpty);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(favorites.removed, isEmpty);
+      expect(find.text('EUR'), findsOneWidget);
+    });
+
+    testWidgets('confirming calls the delete service and drops the row', (
+      tester,
+    ) async {
+      await openFavorites(tester);
+      await slide(tester, 'EUR');
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
       await tester.pumpAndSettle();
 
       expect(favorites.removed, ['id-EUR']);
@@ -390,8 +546,11 @@ void main() {
     testWidgets('a failed removal keeps the row and says why', (tester) async {
       favorites.removeFailure = const NetworkFailure();
       await openFavorites(tester);
+      await slide(tester, 'EUR');
 
-      await tester.drag(find.text('EUR'), const Offset(-700, 0));
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
       await tester.pumpAndSettle();
 
       expect(favorites.removed, ['id-EUR']);
@@ -407,11 +566,34 @@ void main() {
     ) async {
       favorites.favorites = [usdAsset];
       await openFavorites(tester);
+      await slide(tester, 'USD');
 
-      await tester.drag(find.text('USD'), const Offset(-700, 0));
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
       await tester.pumpAndSettle();
 
       expect(find.text('No favorites yet'), findsOneWidget);
+    });
+
+    testWidgets('Alert opens the editor for that asset in the base currency', (
+      tester,
+    ) async {
+      await openFavorites(tester);
+      await slide(tester, 'EUR');
+
+      await tester.tap(find.text('Alert'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(BottomSheet),
+          matching: find.textContaining('EUR'),
+        ),
+        findsWidgets,
+      );
+      expect(favorites.removed, isEmpty);
     });
   });
 }

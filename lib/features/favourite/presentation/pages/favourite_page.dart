@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/format/number_format.dart';
+import '../../../alerts/domain/usecases/alert_usecases.dart';
+import '../../../alerts/presentation/widgets/alert_editor_sheet.dart';
 import '../bloc/favorites_cubit.dart';
 import '../widgets/asset_flag.dart';
 import '../widgets/asset_picker_sheet.dart';
@@ -25,6 +28,7 @@ const _background = Color(0xFFF1F1F6);
 const _muted = Color(0xFF8A8A93);
 const _up = Color(0xFF34B35B);
 const _down = Color(0xFFE5383B);
+const _blue = Color(0xFF2F6FED);
 
 class _FavoritesView extends StatelessWidget {
   const _FavoritesView();
@@ -37,14 +41,78 @@ class _FavoritesView extends StatelessWidget {
 
   Future<void> _add(BuildContext context) async {
     final cubit = context.read<FavoritesCubit>();
-    final picked = await showAssetPickerSheet(
-      context,
-      excludeIds: {for (final r in cubit.state.rows) r.asset.id},
+    final changed = await showAssetPickerSheet(context);
+    // Favorites were toggled inside the sheet; reload the list behind it.
+    if (changed) await cubit.load(refresh: true);
+  }
+
+  /// Asks first; the delete request is only sent after the user confirms.
+  Future<void> _confirmDelete(BuildContext context, FavoriteRow row) async {
+    final cubit = context.read<FavoritesCubit>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remove from favorites?'),
+        content: Text(
+          "${row.asset.symbol} · ${row.asset.name} will be removed from your favorites.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: _down),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
-    if (picked == null || !context.mounted) return;
-    final error = await cubit.add(picked);
-    if (error != null && context.mounted) {
-      _snack(context, "Couldn't add ${picked.symbol}. $error");
+    if (confirmed != true || !context.mounted) return;
+    final error = await cubit.remove(row.asset.id);
+    if (!context.mounted) return;
+    if (error == null) {
+      cubit.dropRow(row.asset.id);
+    } else {
+      _snack(context, "Couldn't remove ${row.asset.symbol}. $error");
+    }
+  }
+
+  /// Opens the price-alert editor for this favorite, priced in the base
+  /// currency.
+  Future<void> _alert(
+    BuildContext context,
+    FavoriteRow row,
+    FavoritesState state,
+  ) async {
+    final quote = state.quoteCurrency;
+    if (row.asset.symbol.toUpperCase() == quote.toUpperCase()) {
+      _snack(
+        context,
+        "This is your base currency, so it can't have a price alert",
+      );
+      return;
+    }
+    final created = await showAlertEditorSheet(
+      context,
+      quote: quote,
+      fixedBase: row.asset.symbol,
+      fixedName: row.asset.name,
+      onSubmit: (base, condition, rate) async {
+        final result = await sl<CreateAlert>()(
+          CreateAlertParams(
+            base: base,
+            quote: quote,
+            condition: condition,
+            targetRate: rate,
+          ),
+        );
+        return result.fold((failure) => failure.message, (_) => null);
+      },
+    );
+    if (created && context.mounted) {
+      _snack(context, "Alert set for ${row.asset.symbol}");
     }
   }
 
@@ -52,6 +120,9 @@ class _FavoritesView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _background,
+      // No inputs on this page; the keyboard (e.g. in the add sheet) must not
+      // squeeze the fixed header.
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         bottom: false,
         child: BlocConsumer<FavoritesCubit, FavoritesState>(
@@ -63,15 +134,32 @@ class _FavoritesView extends StatelessWidget {
           listener: (context, state) => _snack(context, state.error!),
           builder: (context, state) {
             final cubit = context.read<FavoritesCubit>();
-            return RefreshIndicator(
-              onRefresh: () => cubit.load(refresh: true),
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+            // The title and the add button stay put; only the list scrolls (and
+            // pulls to refresh).
+            return LayoutBuilder(
+              builder: (context, constraints) => Column(
                 children: [
-                  _Header(onAdd: () => _add(context)),
-                  const SizedBox(height: 20),
-                  ..._content(context, state),
+                  // Capped so a very short body (keyboard up, landscape) cannot
+                  // overflow; the header scrolls in that case.
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: constraints.maxHeight * 0.5,
+                    ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                      child: _Header(onAdd: () => _add(context)),
+                    ),
+                  ),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () => cubit.load(refresh: true),
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                        children: _content(context, state),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -114,21 +202,30 @@ class _FavoritesView extends StatelessWidget {
         }
         return [
           for (var i = 0; i < state.rows.length; i++) ...[
-            Dismissible(
+            Slidable(
               key: ValueKey(state.rows[i].asset.id),
-              direction: DismissDirection.endToStart,
-              background: const _DeleteBackground(),
-              confirmDismiss: (_) async {
-                final error = await cubit.remove(state.rows[i].asset.id);
-                if (error != null && context.mounted) {
-                  _snack(
-                    context,
-                    "Couldn't remove ${state.rows[i].asset.symbol}. $error",
-                  );
-                }
-                return error == null;
-              },
-              onDismissed: (_) => cubit.dropRow(state.rows[i].asset.id),
+              // Sliding only reveals the actions; nothing happens until one is
+              // tapped.
+              endActionPane: ActionPane(
+                motion: const DrawerMotion(),
+                extentRatio: 0.5,
+                children: [
+                  SlidableAction(
+                    onPressed: (_) => _alert(context, state.rows[i], state),
+                    backgroundColor: _blue,
+                    foregroundColor: Colors.white,
+                    icon: Icons.notifications_active_outlined,
+                    label: 'Alert',
+                  ),
+                  SlidableAction(
+                    onPressed: (_) => _confirmDelete(context, state.rows[i]),
+                    backgroundColor: _down,
+                    foregroundColor: Colors.white,
+                    icon: Icons.delete_sharp,
+                    label: 'Delete',
+                  ),
+                ],
+              ),
               child: _FavoriteTile(
                 row: state.rows[i],
                 quoteCurrency: state.quoteCurrency,
@@ -179,20 +276,6 @@ class _Header extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _DeleteBackground extends StatelessWidget {
-  const _DeleteBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: _down,
-      alignment: Alignment.centerRight,
-      padding: const EdgeInsets.only(right: 24),
-      child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
     );
   }
 }
@@ -311,7 +394,7 @@ class _Price extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text(
-          '${formatPrice(quote.rate)}$quoteCurrency',
+          formatMoney(quote.rate, quoteCurrency),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
@@ -319,7 +402,7 @@ class _Price extends StatelessWidget {
         if (change != null) ...[
           const SizedBox(height: 2),
           Text(
-            '${formatChange(change)}$quoteCurrency',
+            formatMoneyChange(change, quoteCurrency),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(

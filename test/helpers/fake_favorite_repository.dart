@@ -54,9 +54,19 @@ class FakeFavoriteRepository implements FavoriteRepository {
   }
 
   @override
-  Future<Either<Failure, List<AssetItem>>> getAssets() async {
+  Future<Either<Failure, Map<AssetKind, List<AssetItem>>>>
+  getAssetCatalog() async {
     final f = assetsFailure;
-    return f != null ? Left(f) : Right(List.of(assets));
+    if (f != null) return Left(f);
+    final favoriteIds = {for (final a in favorites) a.id};
+    return Right({
+      for (final kind in AssetKind.values)
+        kind: [
+          for (final a in assets)
+            if (a.kind == kind)
+              a.copyWith(isFavorite: favoriteIds.contains(a.id)),
+        ],
+    });
   }
 
   @override
