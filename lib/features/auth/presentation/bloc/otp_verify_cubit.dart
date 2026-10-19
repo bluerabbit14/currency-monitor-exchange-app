@@ -18,13 +18,21 @@ sealed class OtpFlow extends Equatable {
 
 /// Sign in / sign up with a code sent to [contact].
 class ContactOtpFlow extends OtpFlow {
-  const ContactOtpFlow(this.contact, {this.expiresInSeconds = 300});
+  const ContactOtpFlow(
+    this.contact, {
+    this.expiresInSeconds = 300,
+    this.sendOnOpen = false,
+  });
 
   final ContactIdentifier contact;
   final int expiresInSeconds;
 
+  /// The code has not been requested yet: the code screen opens first and
+  /// sends it in the background.
+  final bool sendOnOpen;
+
   @override
-  List<Object?> get props => [contact, expiresInSeconds];
+  List<Object?> get props => [contact, expiresInSeconds, sendOnOpen];
 }
 
 /// Confirms ownership of an existing account before linking a Google identity.
@@ -98,7 +106,12 @@ class OtpVerifyCubit extends Cubit<OtpVerifyState> {
   }) : _now = now ?? DateTime.now,
        super(const OtpVerifyState()) {
     _expiresAt = _now().add(Duration(seconds: _initialExpirySeconds));
-    if (canResend) _startCooldown();
+    final current = flow;
+    if (current is ContactOtpFlow && current.sendOnOpen) {
+      _send(current.contact, initial: true);
+    } else if (canResend) {
+      _startCooldown();
+    }
   }
 
   /// Client-side throttle. The backend has no resend limit, and every resend
@@ -168,8 +181,14 @@ class OtpVerifyCubit extends Cubit<OtpVerifyState> {
     final current = flow;
     if (current is! ContactOtpFlow) return;
     if (state.isBusy || state.resendInSeconds > 0) return;
+    await _send(current.contact, initial: false);
+  }
+
+  /// Requests a code. [initial] is the send that opened this screen, so it
+  /// is not announced as "a new code".
+  Future<void> _send(ContactIdentifier contact, {required bool initial}) async {
     emit(state.copyWith(isResending: true, error: () => null, resent: false));
-    final result = await _sendOtp(current.contact);
+    final result = await _sendOtp(contact);
     if (isClosed) return;
     result.fold(
       (failure) => emit(
@@ -177,7 +196,7 @@ class OtpVerifyCubit extends Cubit<OtpVerifyState> {
       ),
       (challenge) {
         _expiresAt = _now().add(Duration(seconds: challenge.expiresInSeconds));
-        emit(state.copyWith(isResending: false, resent: true));
+        emit(state.copyWith(isResending: false, resent: !initial));
         _startCooldown();
       },
     );

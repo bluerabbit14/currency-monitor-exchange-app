@@ -1,17 +1,35 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../currency/domain/usecases/preload_currencies.dart';
 import '../bloc/login_cubit.dart';
 import '../bloc/otp_verify_cubit.dart';
+import '../widgets/animated_globe.dart';
 import '../widgets/auth_bottom_sheet.dart';
 import 'otp_page.dart';
 
 /// Login screen: a hero and a "Get started" button that opens the sign-in
 /// sheet (email + OTP, or Google). Success is not handled here; the session is
 /// stored and the app swaps this page for the home screen.
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  @override
+  void initState() {
+    super.initState();
+    // The currency list is needed right after sign-in; fetch it now, in the
+    // background, so that screen opens with the data already cached.
+    unawaited(sl<PreloadCurrencies>()());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +42,8 @@ class LoginPage extends StatelessWidget {
               ScaffoldMessenger.of(context)
                 ..hideCurrentSnackBar()
                 ..showSnackBar(SnackBar(content: Text(message)));
-            case LoginOtpSent(:final contact, :final expiresInSeconds):
-              OtpPage.open(
-                context,
-                ContactOtpFlow(contact, expiresInSeconds: expiresInSeconds),
-              );
+            case LoginOtpRequested(:final contact):
+              OtpPage.open(context, ContactOtpFlow(contact, sendOnOpen: true));
             case LoginGoogleLinkRequired(:final link):
               OtpPage.open(
                 context,
@@ -68,6 +83,12 @@ class LoginPage extends StatelessWidget {
       isScrollControlled: true,
       isDismissible: false,
       enableDrag: false,
+      // Slower than the default (250ms) so the sheet glides in.
+      sheetAnimationStyle: const AnimationStyle(
+        duration: Duration(milliseconds: 400),
+        reverseDuration: Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      ),
       constraints: const BoxConstraints(maxWidth: double.infinity),
       useSafeArea: true,
       backgroundColor: Colors.transparent,
@@ -155,7 +176,7 @@ class _HeroSection extends StatelessWidget {
       width: double.infinity,
       decoration: const BoxDecoration(
         gradient: RadialGradient(
-          center: Alignment(0, 0.35),
+          center: Alignment(0, -0.2),
           radius: 0.9,
           colors: [Color(0xFF16253F), Colors.black],
         ),
@@ -165,60 +186,46 @@ class _HeroSection extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final height = constraints.maxHeight;
-            // Everything is sized from the space actually available, and
-            // pieces drop out entirely when there is not enough room (small
-            // phones, keyboard open) so nothing can overflow.
-            final topGap = (height * 0.1).clamp(12.0, 80.0);
-            final showTitle = height >= 150;
-            final titleHeight = showTitle ? 80.0 : 0.0;
-            final badgeSpace = height - topGap - titleHeight - 16;
-            final badgeSize = badgeSpace.clamp(0.0, 190.0) * 0.9;
-            final showBadge = badgeSize >= 80;
+            // Pieces drop out when there is not enough room (small phones,
+            // landscape) so nothing can overflow.
+            final showTitle = height >= 260;
+            final titleHeight = showTitle ? 96.0 : 0.0;
+            final globeSize = math.min(
+              constraints.maxWidth,
+              height - titleHeight,
+            );
+            final showGlobe = globeSize >= 100;
 
             return ClipRect(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (showBadge)
-                    Expanded(
-                      child: Center(child: _CoinBadge(size: badgeSize)),
+                  if (showGlobe) AnimatedGlobe(size: globeSize),
+                  if (showTitle)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                      child: SizedBox(
+                        height: titleHeight - 8,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Convert Multiple Currencies\n and Set Price Alerts',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20,
+                              height: 1.25,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFFFFF7E8),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                 ],
               ),
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-class _CoinBadge extends StatelessWidget {
-  const _CoinBadge({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF6FA2E0), Color(0xFF2A4F8F)],
-        ),
-        border: Border.all(color: const Color(0xFF9CC2F0), width: 4),
-        boxShadow: const [
-          BoxShadow(color: Color(0x663B82F6), blurRadius: 50, spreadRadius: 4),
-        ],
-      ),
-      alignment: Alignment.center,
-      child: Icon(
-        Icons.currency_exchange_rounded,
-        size: size * 0.5,
-        color: Color(0xFFFBEBD3),
       ),
     );
   }

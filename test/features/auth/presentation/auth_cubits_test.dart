@@ -62,11 +62,11 @@ void main() {
   });
 
   group('LoginCubit', () {
-    LoginCubit make() => LoginCubit(SendOtp(repo), SignInWithGoogle(repo));
+    LoginCubit make() => LoginCubit(SignInWithGoogle(repo));
 
-    test('invalid email is rejected inline without a request', () async {
+    test('invalid email is rejected inline without a request', () {
       final cubit = make();
-      await cubit.continueWithEmail('nope');
+      cubit.continueWithEmail('nope');
       expect(
         cubit.state,
         const LoginFailed(
@@ -74,7 +74,7 @@ void main() {
           isEmailFieldError: true,
         ),
       );
-      await cubit.continueWithEmail('   ');
+      cubit.continueWithEmail('   ');
       expect(
         cubit.state,
         const LoginFailed('Enter your email address', isEmailFieldError: true),
@@ -82,47 +82,24 @@ void main() {
       expect(repo.sent, isEmpty);
     });
 
-    test('valid email sends a normalised OTP request', () async {
-      final cubit = make();
-      final states = <LoginState>[];
-      cubit.stream.listen(states.add);
+    test(
+      'valid email opens the code screen at once, sending nothing',
+      () async {
+        final cubit = make();
+        final states = <LoginState>[];
+        cubit.stream.listen(states.add);
 
-      await cubit.continueWithEmail('  Me@Example.com ');
-      await Future<void>.delayed(Duration.zero);
+        cubit.continueWithEmail('  Me@Example.com ');
+        await Future<void>.delayed(Duration.zero);
 
-      expect(repo.sent.single.value, 'me@example.com');
-      expect(states, [
-        const LoginLoading(LoginMethod.email),
-        LoginOtpSent(repo.sent.single, 300),
-      ]);
-    });
-
-    test('ignores repeated taps while a request is in flight', () async {
-      final gate = Completer<Either<Failure, OtpChallenge>>();
-      repo.onSend = (_) => gate.future;
-      final cubit = make();
-
-      final first = cubit.continueWithEmail('a@b.co');
-      await cubit.continueWithEmail('a@b.co');
-      await cubit.continueWithGoogle();
-      expect(repo.sent, hasLength(1));
-      expect(cubit.state, const LoginLoading(LoginMethod.email));
-
-      gate.complete(const Left(NetworkFailure()));
-      await first;
-      expect(
-        cubit.state,
-        const LoginFailed('Unable to reach the server. Check your connection'),
-      );
-    });
-
-    test('send failure surfaces the message', () async {
-      repo.onSend = (_) async =>
-          const Left(ServerFailure('Service temporarily unavailable'));
-      final cubit = make();
-      await cubit.continueWithEmail('a@b.co');
-      expect(cubit.state, const LoginFailed('Service temporarily unavailable'));
-    });
+        // No loading state and no request: the code screen sends the OTP.
+        expect(repo.sent, isEmpty);
+        expect(states, [
+          LoginOtpRequested(EmailContact.tryParse('me@example.com')!),
+          const LoginIdle(),
+        ]);
+      },
+    );
 
     test(
       'google: signed in returns to idle (app routes via session)',
@@ -261,6 +238,45 @@ void main() {
       // New code is accepted again.
       await cubit.submit('123456');
       expect(cubit.state.error, isNull);
+      await cubit.close();
+    });
+
+    test('sendOnOpen sends in the background without blocking', () async {
+      final gate = Completer<Either<Failure, OtpChallenge>>();
+      repo.onSend = (_) => gate.future;
+      final cubit = make(ContactOtpFlow(contact, sendOnOpen: true));
+
+      // Constructed and usable straight away; the send is still in flight.
+      expect(repo.sent, hasLength(1));
+      expect(cubit.state.isResending, isTrue);
+      expect(cubit.state.resendInSeconds, 0);
+
+      gate.complete(
+        Right(OtpChallenge(contact: contact, expiresInSeconds: 300)),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.isResending, isFalse);
+      expect(cubit.state.error, isNull);
+      expect(cubit.state.resent, isFalse);
+      expect(cubit.state.resendInSeconds, OtpVerifyCubit.resendCooldownSeconds);
+      await cubit.close();
+    });
+
+    test('a failed background send shows the error and allows retry', () async {
+      repo.onSend = (_) async => const Left(NetworkFailure());
+      final cubit = make(ContactOtpFlow(contact, sendOnOpen: true));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.error, const NetworkFailure().message);
+      expect(cubit.state.isResending, isFalse);
+      expect(cubit.state.resendInSeconds, 0);
+
+      repo.onSend = (c) async =>
+          Right(OtpChallenge(contact: c, expiresInSeconds: 300));
+      await cubit.resend();
+      expect(cubit.state.error, isNull);
+      expect(repo.sent, hasLength(2));
       await cubit.close();
     });
 

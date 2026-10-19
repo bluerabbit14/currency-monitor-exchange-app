@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:currency/app.dart';
 import 'package:currency/core/di/injection.dart';
 import 'package:currency/core/error/failures.dart';
 import 'package:currency/features/auth/domain/entities/google_sign_in_outcome.dart';
+import 'package:currency/features/auth/domain/entities/otp_challenge.dart';
 import 'package:currency/features/auth/domain/repositories/auth_repository.dart';
 import 'package:currency/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:currency/features/shell/presentation/widgets/floating_nav_bar.dart';
@@ -21,6 +24,12 @@ void main() {
   late AuthSessionCubit session;
 
   setUp(() async {
+    // The login globe animates forever; reduced motion lets pumpAndSettle end.
+    TestWidgetsFlutterBinding.ensureInitialized()
+        .platformDispatcher
+        .accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+      disableAnimations: true,
+    );
     await sl.reset();
     await init();
     await useFakeProfileRepository();
@@ -170,7 +179,30 @@ void main() {
     expect(find.text('A new code has been sent'), findsOneWidget);
   });
 
-  testWidgets('send failure keeps the user on the login page with a message', (
+  testWidgets('the code screen opens without waiting for the send', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    final gate = Completer<Either<Failure, OtpChallenge>>();
+    repo.onSend = (_) => gate.future;
+
+    await tester.enterText(find.byType(TextField), 'a@b.co');
+    await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+    await tester.pumpAndSettle();
+
+    // The request is still pending, yet the user is already on the code page.
+    expect(find.byType(OtpPage), findsOneWidget);
+    expect(find.text('Sending a 6-digit code to'), findsOneWidget);
+    expect(find.text('Sending…'), findsOneWidget);
+
+    gate.complete(
+      Right(OtpChallenge(contact: repo.sent.single, expiresInSeconds: 300)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('We sent a 6-digit code to'), findsOneWidget);
+  });
+
+  testWidgets('a failed send is shown on the code screen, with retry', (
     tester,
   ) async {
     await pumpApp(tester);
@@ -178,9 +210,14 @@ void main() {
 
     await enterEmailAndContinue(tester, 'a@b.co');
 
-    expect(find.byType(OtpPage), findsNothing);
-    // Shown by both the page and the sheet scaffolds.
-    expect(find.text(const NetworkFailure().message), findsWidgets);
+    expect(find.byType(OtpPage), findsOneWidget);
+    expect(find.text(const NetworkFailure().message), findsOneWidget);
+    expect(
+      tester
+          .widget<TextButton>(find.widgetWithText(TextButton, 'Resend code'))
+          .onPressed,
+      isNotNull,
+    );
   });
 
   testWidgets('google: existing account opens the link-verification OTP page', (

@@ -35,7 +35,7 @@ class OtpPage extends StatelessWidget {
     return BlocProvider(
       create: (_) => sl<OtpVerifyCubit>(param1: flow),
       child: _OtpView(
-        title: 'Verify your email',
+        title: 'Verify account with OTP',
         subtitle: _subtitle,
         destination: _destination,
       ),
@@ -59,11 +59,24 @@ class _OtpView extends StatefulWidget {
 }
 
 class _OtpViewState extends State<_OtpView> {
+  static const _accent = Color(0xFFF0505F);
+  static const _errorColor = Color(0xFFD93025);
+
   final _controller = TextEditingController();
+  final _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // Rebuild the boxes as the digits and focus change.
+    _controller.addListener(() => setState(() {}));
+    _focus.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
     _controller.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -75,86 +88,83 @@ class _OtpViewState extends State<_OtpView> {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<OtpVerifyCubit>();
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
           child: BlocConsumer<OtpVerifyCubit, OtpVerifyState>(
             listenWhen: (previous, current) =>
                 current.error != null && current.error != previous.error,
             listener: (context, state) {
               // The code was wrong or expired: let the user retype it.
               _controller.clear();
+              _focus.requestFocus();
             },
             builder: (context, state) {
+              final hasError = state.error != null;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _RoundBackButton(
+                    onPressed: () => Navigator.maybePop(context),
+                  ),
+                  const SizedBox(height: 28),
                   Text(
                     widget.title,
                     style: Theme.of(context).textTheme.headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 12),
-                  Text(widget.subtitle),
+                  Text(
+                    state.isResending && cubit.canResend
+                        ? 'Sending a 6-digit code to'
+                        : widget.subtitle,
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     widget.destination,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 24),
-                  TextField(
+                  const SizedBox(height: 28),
+                  _CodeBoxes(
                     controller: _controller,
-                    autofocus: true,
+                    focusNode: _focus,
                     enabled: !state.isVerifying,
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.done,
-                    autofillHints: const [AutofillHints.oneTimeCode],
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(OtpCode.length),
-                    ],
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 28, letterSpacing: 12),
-                    decoration: InputDecoration(
-                      hintText: '••••••',
-                      counterText: '',
-                      errorText: state.error,
-                      border: const OutlineInputBorder(),
-                    ),
+                    hasError: hasError,
                     onChanged: (value) {
                       cubit.clearError();
                       if (value.length == OtpCode.length) _submit(context);
                     },
-                    onSubmitted: (_) => _submit(context),
+                    onSubmitted: () => _submit(context),
                   ),
-                  if (state.resent)
+                  if (hasError)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        state.error!,
+                        style: const TextStyle(
+                          color: _errorColor,
+                          fontSize: 15,
+                        ),
+                      ),
+                    )
+                  else if (state.resent)
                     const Padding(
-                      padding: EdgeInsets.only(top: 8),
+                      padding: EdgeInsets.only(top: 12),
                       child: Text('A new code has been sent'),
                     ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: FilledButton(
-                      onPressed: state.isBusy ? null : () => _submit(context),
-                      child: state.isVerifying
-                          ? const SizedBox.square(
-                              dimension: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text('Verify'),
-                    ),
-                  ),
-                  if (cubit.canResend) ...[
-                    const SizedBox(height: 12),
-                    Center(
+                  if (cubit.canResend)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
                       child: TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          alignment: Alignment.centerLeft,
+                        ),
                         onPressed: state.isBusy || state.resendInSeconds > 0
                             ? null
                             : cubit.resend,
@@ -164,15 +174,184 @@ class _OtpViewState extends State<_OtpView> {
                               : state.resendInSeconds > 0
                               ? 'Resend code in ${state.resendInSeconds}s'
                               : 'Resend code',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
                       ),
                     ),
-                  ],
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: FilledButton(
+                      onPressed: state.isBusy ? null : () => _submit(context),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _accent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: state.isVerifying
+                          ? const SizedBox.square(
+                              dimension: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Verify',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                    ),
+                  ),
                 ],
               );
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RoundBackButton extends StatelessWidget {
+  const _RoundBackButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surface,
+      shape: CircleBorder(side: BorderSide(color: scheme.outlineVariant)),
+      elevation: 1,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onPressed,
+        child: const SizedBox.square(
+          dimension: 48,
+          child: Icon(Icons.arrow_back, size: 22),
+        ),
+      ),
+    );
+  }
+}
+
+/// Six boxes showing the typed digits. One invisible [TextField] sits on top
+/// and does the real work (keyboard, paste, one-time-code autofill), so the
+/// boxes are purely visual.
+class _CodeBoxes extends StatelessWidget {
+  const _CodeBoxes({
+    required this.controller,
+    required this.focusNode,
+    required this.enabled,
+    required this.hasError,
+    required this.onChanged,
+    required this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool enabled;
+  final bool hasError;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onSubmitted;
+
+  static const _gap = 8.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = controller.text;
+    final activeIndex = focusNode.hasFocus
+        ? text.length.clamp(0, OtpCode.length - 1)
+        : -1;
+    return Stack(
+      children: [
+        Row(
+          children: [
+            for (var i = 0; i < OtpCode.length; i++) ...[
+              if (i > 0) const SizedBox(width: _gap),
+              Expanded(
+                child: _CodeBox(
+                  digit: i < text.length ? text[i] : '',
+                  borderColor: hasError
+                      ? _OtpViewState._errorColor
+                      : i == activeIndex
+                      ? scheme.onSurface
+                      : scheme.outlineVariant,
+                  borderWidth: hasError || i == activeIndex ? 1.6 : 1,
+                  fill: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ],
+        ),
+        Positioned.fill(
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            autofocus: true,
+            enabled: enabled,
+            showCursor: false,
+            enableInteractiveSelection: false,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            autofillHints: const [AutofillHints.oneTimeCode],
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(OtpCode.length),
+            ],
+            // Invisible, but still receives taps, keys and autofill.
+            style: const TextStyle(color: Colors.transparent, fontSize: 1),
+            cursorColor: Colors.transparent,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              counterText: '',
+              contentPadding: EdgeInsets.zero,
+            ),
+            onChanged: onChanged,
+            onSubmitted: (_) => onSubmitted(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CodeBox extends StatelessWidget {
+  const _CodeBox({
+    required this.digit,
+    required this.borderColor,
+    required this.borderWidth,
+    required this.fill,
+  });
+
+  final String digit;
+  final Color borderColor;
+  final double borderWidth;
+  final Color fill;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 58,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: borderWidth),
+      ),
+      child: Text(
+        digit,
+        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
       ),
     );
   }

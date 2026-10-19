@@ -13,6 +13,12 @@ void main() {
   late FakeAuthRepository auth;
 
   setUp(() async {
+    // The login globe animates forever; reduced motion lets pumpAndSettle end.
+    TestWidgetsFlutterBinding.ensureInitialized()
+        .platformDispatcher
+        .accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+      disableAnimations: true,
+    );
     await sl.reset();
     await init();
     await useFakeProfileRepository();

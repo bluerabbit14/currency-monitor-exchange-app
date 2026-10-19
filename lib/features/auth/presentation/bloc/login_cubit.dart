@@ -5,7 +5,6 @@ import '../../../../core/usecases/usecase.dart';
 import '../../data/datasources/google_sign_in_data_source.dart';
 import '../../domain/entities/contact_identifier.dart';
 import '../../domain/entities/google_sign_in_outcome.dart';
-import '../../domain/usecases/send_otp.dart';
 import '../../domain/usecases/sign_in_with_google.dart';
 
 enum LoginMethod { email, google }
@@ -30,15 +29,15 @@ class LoginLoading extends LoginState {
   List<Object?> get props => [method];
 }
 
-/// An OTP was emailed; the UI should open the code screen.
-class LoginOtpSent extends LoginState {
-  const LoginOtpSent(this.contact, this.expiresInSeconds);
+/// The email is valid: the UI opens the code screen at once. The code screen
+/// sends the OTP in the background, so nothing waits on the network here.
+class LoginOtpRequested extends LoginState {
+  const LoginOtpRequested(this.contact);
 
   final ContactIdentifier contact;
-  final int expiresInSeconds;
 
   @override
-  List<Object?> get props => [contact, expiresInSeconds];
+  List<Object?> get props => [contact];
 }
 
 /// Google email already has an account; an OTP was emailed to it.
@@ -67,14 +66,13 @@ class LoginFailed extends LoginState {
 /// session is stored by the repository and the app reacts to
 /// `AuthSessionCubit`.
 class LoginCubit extends Cubit<LoginState> {
-  LoginCubit(this._sendOtp, this._signInWithGoogle) : super(const LoginIdle());
+  LoginCubit(this._signInWithGoogle) : super(const LoginIdle());
 
-  final SendOtp _sendOtp;
   final SignInWithGoogle _signInWithGoogle;
 
   bool get _busy => state is LoginLoading;
 
-  Future<void> continueWithEmail(String input) async {
+  void continueWithEmail(String input) {
     if (_busy) return; // ignore repeated taps
     if (input.trim().isEmpty) {
       emit(
@@ -92,16 +90,10 @@ class LoginCubit extends Cubit<LoginState> {
       );
       return;
     }
-    emit(const LoginLoading(LoginMethod.email));
-    final result = await _sendOtp(contact);
-    if (isClosed) return;
-    emit(
-      result.fold(
-        (failure) => LoginFailed(failure.message),
-        (challenge) =>
-            LoginOtpSent(challenge.contact, challenge.expiresInSeconds),
-      ),
-    );
+    emit(LoginOtpRequested(contact));
+    // Back to idle straight away so the same email can be requested again
+    // after returning from the code screen.
+    emit(const LoginIdle());
   }
 
   Future<void> continueWithGoogle() async {

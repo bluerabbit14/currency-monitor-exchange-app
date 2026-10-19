@@ -27,6 +27,7 @@ import '../../features/currency/data/datasources/currency_remote_data_source.dar
 import '../../features/currency/data/repositories/currency_repository_impl.dart';
 import '../../features/currency/domain/repositories/currency_repository.dart';
 import '../../features/currency/domain/usecases/get_currencies.dart';
+import '../../features/currency/domain/usecases/preload_currencies.dart';
 import '../../features/currency/domain/usecases/set_base_currency.dart';
 import '../../features/currency/presentation/bloc/base_currency_cubit.dart';
 import '../../features/favourite/data/datasources/favorite_remote_data_source.dart';
@@ -58,7 +59,7 @@ const authenticatedApiClient = 'authenticated';
 Future<void> init() async {
   // Auth
   sl.registerLazySingleton(() => AuthSessionCubit(sl()));
-  sl.registerFactory(() => LoginCubit(sl(), sl()));
+  sl.registerFactory(() => LoginCubit(sl()));
   sl.registerFactoryParam<OtpVerifyCubit, OtpFlow, void>(
     (flow, _) => OtpVerifyCubit(flow, sl(), sl(), sl()),
   );
@@ -81,6 +82,7 @@ Future<void> init() async {
   // Currency
   sl.registerFactory(() => BaseCurrencyCubit(sl(), sl()));
   sl.registerLazySingleton(() => GetCurrencies(sl()));
+  sl.registerLazySingleton(() => PreloadCurrencies(sl()));
   sl.registerLazySingleton(() => SetBaseCurrency(sl()));
   sl.registerLazySingleton<CurrencyRepository>(
     () => CurrencyRepositoryImpl(sl()),
