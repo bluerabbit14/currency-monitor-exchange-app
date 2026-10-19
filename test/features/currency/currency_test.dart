@@ -28,7 +28,7 @@ void main() {
               'id': 'a',
               'symbol': 'RUB',
               'name': 'Russian Ruble',
-              'type': 'FIAT',
+              'favorite': true,
               'status': 'ACTIVE',
             },
             {'id': 'b', 'symbol': 'USD', 'name': 'US Dollar'},

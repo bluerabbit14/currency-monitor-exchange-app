@@ -7,8 +7,9 @@ import '../bloc/otp_verify_cubit.dart';
 import '../widgets/auth_bottom_sheet.dart';
 import 'otp_page.dart';
 
-/// Login screen: email + OTP, or Google. Success is not handled here; the
-/// session is stored and the app swaps this page for the home screen.
+/// Login screen: a hero and a "Get started" button that opens the sign-in
+/// sheet (email + OTP, or Google). Success is not handled here; the session is
+/// stored and the app swaps this page for the home screen.
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
@@ -16,7 +17,7 @@ class LoginPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<LoginCubit>(),
-      child: BlocConsumer<LoginCubit, LoginState>(
+      child: BlocListener<LoginCubit, LoginState>(
         listener: (context, state) {
           switch (state) {
             case LoginFailed(isEmailFieldError: false, :final message):
@@ -41,53 +42,105 @@ class LoginPage extends StatelessWidget {
               break;
           }
         },
-        builder: (context, state) {
-          final cubit = context.read<LoginCubit>();
-          return Scaffold(
+        child: Builder(
+          builder: (context) => Scaffold(
             backgroundColor: Colors.black,
-            resizeToAvoidBottomInset: true,
-            body: LayoutBuilder(
-              builder: (context, constraints) => Column(
-                children: [
-                  const Expanded(child: _HeroSection()),
-                  // The sheet scrolls internally if it ever needs more than this
-                  // (large text, small screen, keyboard open) instead of
-                  // overflowing the page.
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: constraints.maxHeight * 0.85,
-                    ),
-                    child: AuthBottomSheet(
-                      isContinueLoading:
-                          state is LoginLoading &&
-                          state.method == LoginMethod.email,
-                      isGoogleLoading:
-                          state is LoginLoading &&
-                          state.method == LoginMethod.google,
-                      emailError:
-                          state is LoginFailed && state.isEmailFieldError
-                          ? state.message
-                          : null,
-                      onContinue: cubit.continueWithEmail,
-                      onGoogle: cubit.continueWithGoogle,
-                      // The backend has no Apple sign-in yet, so this only
-                      // explains that instead of pretending to sign in.
-                      onApple: () => ScaffoldMessenger.of(context)
-                        ..hideCurrentSnackBar()
-                        ..showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Sign in with Apple is not available yet',
-                            ),
-                          ),
-                        ),
-                    ),
-                  ),
-                ],
+            // No inputs here; the sheet has its own Scaffold for the keyboard.
+            resizeToAvoidBottomInset: false,
+            body: Column(
+              children: [
+                const Expanded(child: _HeroSection()),
+                _GetStartedButton(onPressed: () => _openSheet(context)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The sheet cannot be dismissed: no tap outside, no drag, no back button.
+  /// It goes away when sign-in succeeds and the app swaps this page out.
+  void _openSheet(BuildContext context) {
+    final cubit = context.read<LoginCubit>();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      constraints: const BoxConstraints(maxWidth: double.infinity),
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => PopScope(
+        canPop: false,
+        // Its own Scaffold so snackbars show above the sheet, not behind it.
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          resizeToAvoidBottomInset: true,
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child: BlocBuilder<LoginCubit, LoginState>(
+              bloc: cubit,
+              builder: (context, state) => _sheet(context, cubit, state),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sheet(BuildContext context, LoginCubit cubit, LoginState state) {
+    return AuthBottomSheet(
+      isContinueLoading:
+          state is LoginLoading && state.method == LoginMethod.email,
+      isGoogleLoading:
+          state is LoginLoading && state.method == LoginMethod.google,
+      emailError: state is LoginFailed && state.isEmailFieldError
+          ? state.message
+          : null,
+      onContinue: cubit.continueWithEmail,
+      onGoogle: cubit.continueWithGoogle,
+      // The backend has no Apple sign-in yet, so this only explains that
+      // instead of pretending to sign in.
+      onApple: () => ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Sign in with Apple is not available yet'),
+          ),
+        ),
+    );
+  }
+}
+
+class _GetStartedButton extends StatelessWidget {
+  const _GetStartedButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        child: SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: FilledButton(
+            onPressed: onPressed,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFF0505F),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
-          );
-        },
+            child: const Text(
+              'Get started',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -125,24 +178,6 @@ class _HeroSection extends StatelessWidget {
             return ClipRect(
               child: Column(
                 children: [
-                  SizedBox(height: topGap),
-                  if (showTitle)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          'TRACK THE BEST RATE\nON EVERY EXCHANGE',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 30,
-                            height: 1.25,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFFFFF7E8),
-                          ),
-                        ),
-                      ),
-                    ),
                   if (showBadge)
                     Expanded(
                       child: Center(child: _CoinBadge(size: badgeSize)),

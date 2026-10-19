@@ -32,12 +32,20 @@ void main() {
     sl.registerLazySingleton<AuthRepository>(() => repo);
   });
 
-  Future<void> pumpApp(WidgetTester tester, {bool signedIn = false}) async {
+  Future<void> pumpApp(
+    WidgetTester tester, {
+    bool signedIn = false,
+    bool openSheet = true,
+  }) async {
     if (signedIn) repo.restored = fakeSession;
     session = AuthSessionCubit(repo);
     await tester.pumpWidget(CurrencyApp(sessionCubit: session));
     await session.start();
     await tester.pump();
+    if (!signedIn && openSheet) {
+      await tester.tap(find.widgetWithText(FilledButton, 'Get started'));
+      await tester.pumpAndSettle();
+    }
   }
 
   Future<void> enterEmailAndContinue(WidgetTester tester, String email) async {
@@ -57,6 +65,35 @@ void main() {
     await tester.pump();
 
     expect(find.byType(LoginPage), findsOneWidget);
+  });
+
+  testWidgets(
+    "login starts with the sheet closed and opens it from Get started",
+    (tester) async {
+      await pumpApp(tester, openSheet: false);
+
+      expect(find.byType(LoginPage), findsOneWidget);
+      expect(find.text('Log in or sign up'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Get started'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Get started'));
+      await tester.pumpAndSettle();
+      expect(find.text('Log in or sign up'), findsOneWidget);
+    },
+  );
+
+  testWidgets("the sheet cannot be dismissed by tapping outside or back", (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(find.text('Log in or sign up'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Log in or sign up'), findsOneWidget);
   });
 
   testWidgets('a stored session opens the home screen directly', (
@@ -142,7 +179,8 @@ void main() {
     await enterEmailAndContinue(tester, 'a@b.co');
 
     expect(find.byType(OtpPage), findsNothing);
-    expect(find.text(const NetworkFailure().message), findsOneWidget);
+    // Shown by both the page and the sheet scaffolds.
+    expect(find.text(const NetworkFailure().message), findsWidgets);
   });
 
   testWidgets('google: existing account opens the link-verification OTP page', (

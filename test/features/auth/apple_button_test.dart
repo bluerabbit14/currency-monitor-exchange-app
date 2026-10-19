@@ -28,6 +28,8 @@ void main() {
     await tester.pumpWidget(CurrencyApp(sessionCubit: session));
     await session.start();
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Get started'));
+    await tester.pumpAndSettle();
   }
 
   testWidgets('the login sheet has the Apple button under Google', (
@@ -43,7 +45,10 @@ void main() {
     );
 
     expect(find.byIcon(Icons.apple), findsOneWidget);
-    expect(tester.getSize(find.byIcon(Icons.apple).hitTestable()).height, greaterThan(0));
+    expect(
+      tester.getSize(find.byIcon(Icons.apple).hitTestable()).height,
+      greaterThan(0),
+    );
   });
 
   testWidgets('tapping it explains it is not available and signs nobody in', (
@@ -54,10 +59,7 @@ void main() {
     await tester.tap(find.text('Continue with Apple'));
     await tester.pump();
 
-    expect(
-      find.text('Sign in with Apple is not available yet'),
-      findsOneWidget,
-    );
+    expect(find.text('Sign in with Apple is not available yet'), findsWidgets);
     expect(auth.sent, isEmpty);
     expect(find.byType(LoginPage), findsOneWidget);
   });
@@ -76,6 +78,8 @@ void main() {
         final session = AuthSessionCubit(auth);
         await tester.pumpWidget(CurrencyApp(sessionCubit: session));
         await session.start();
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Get started'));
         await tester.pumpAndSettle();
 
         // The test font is fixed-width (1em per character), so width divided
@@ -105,6 +109,8 @@ void main() {
       final session = AuthSessionCubit(auth);
       await tester.pumpWidget(CurrencyApp(sessionCubit: session));
       await session.start();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Get started'));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
