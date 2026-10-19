@@ -1,10 +1,13 @@
 abstract final class ApiConstants {
-  static const bool isAppLive = false;
+  static const String appName = 'MoneyEx';
 
+  static const String WebBaseUrl = 'https://vercel.com';
   static const String stagingApiBaseUrl =
       'https://currency-monitor-exchange-app-backend.onrender.com';
   static const String liveApiBaseUrl =
       'https://currency-monitor-exchange-app-backend.onrender.com';
+
+  static const bool isAppLive = false;
 
   static const String baseUrl = isAppLive ? liveApiBaseUrl : stagingApiBaseUrl;
 
