@@ -70,6 +70,17 @@ class LoginPage extends StatelessWidget {
                           : null,
                       onContinue: cubit.continueWithEmail,
                       onGoogle: cubit.continueWithGoogle,
+                      // The backend has no Apple sign-in yet, so this only
+                      // explains that instead of pretending to sign in.
+                      onApple: () => ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Sign in with Apple is not available yet',
+                            ),
+                          ),
+                        ),
                     ),
                   ),
                 ],

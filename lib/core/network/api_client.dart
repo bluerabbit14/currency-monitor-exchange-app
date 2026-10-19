@@ -46,14 +46,27 @@ class ApiClient {
   }) => _send(() => _dio.post<dynamic>(path, data: data));
 
   /// Returns the envelope `body`.
-  Future<Map<String, dynamic>?> get(String path) =>
-      _send(() => _dio.get<dynamic>(path));
+  Future<Map<String, dynamic>?> get(
+    String path, {
+    Map<String, dynamic>? query,
+  }) => _send(() => _dio.get<dynamic>(path, queryParameters: query));
 
   /// Returns the envelope `body`.
   Future<Map<String, dynamic>?> put(
     String path, {
     Map<String, dynamic>? data,
   }) => _send(() => _dio.put<dynamic>(path, data: data));
+
+  /// Returns the envelope `body`.
+  Future<Map<String, dynamic>?> patch(
+    String path, {
+    Map<String, dynamic>? data,
+  }) => _send(() => _dio.patch<dynamic>(path, data: data));
+
+  /// For endpoints that answer 204 No Content.
+  Future<void> delete(String path) async {
+    await _send(() => _dio.delete<dynamic>(path));
+  }
 
   /// For endpoints whose envelope `body` is a JSON array.
   Future<List<dynamic>> getList(String path) async {

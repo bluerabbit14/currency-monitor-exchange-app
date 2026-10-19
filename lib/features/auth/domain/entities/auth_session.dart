@@ -12,7 +12,7 @@ class AuthSession extends Equatable {
   final String refreshToken;
   final DateTime accessTokenExpiresAt;
 
-  /// Set when the account was just created: the user must pick a base
+  /// Set when the login response carried no base currency: the user must pick a base
   /// currency before entering the app. It is stored with the session, so it
   /// survives the app being closed before the choice is made.
   final bool requiresBaseCurrency;

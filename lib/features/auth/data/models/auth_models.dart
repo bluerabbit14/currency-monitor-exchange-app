@@ -8,6 +8,7 @@ class AuthTokensModel {
     required this.refreshToken,
     required this.expiresInSeconds,
     required this.newUser,
+    this.baseCurrencyId,
   });
 
   factory AuthTokensModel.fromJson(Map<String, dynamic> json) {
@@ -27,6 +28,7 @@ class AuthTokensModel {
       expiresInSeconds: expires.toInt(),
       // Absent on /auth/refresh.
       newUser: json['newUser'] == true,
+      baseCurrencyId: json['baseCurrencyId'] as String?,
     );
   }
 
@@ -34,6 +36,9 @@ class AuthTokensModel {
   final String refreshToken;
   final int expiresInSeconds;
   final bool newUser;
+
+  /// Null until the user has chosen a base currency (absent on /auth/refresh).
+  final String? baseCurrencyId;
 
   AuthSession toSession(DateTime now, {bool requiresBaseCurrency = false}) =>
       AuthSession(

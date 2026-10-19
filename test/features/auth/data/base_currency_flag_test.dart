@@ -27,8 +27,8 @@ void main() {
 
   tearDown(() => tokens.dispose());
 
-  test('a new account is stored as needing a base currency', () async {
-    adapter.handler = (_) => ok(tokenBody(newUser: true));
+  test('a login with no base currency is stored as needing a base currency', () async {
+    adapter.handler = (_) => ok(tokenBody(newUser: true, baseCurrencyId: null));
 
     final result = await repo.verifyOtp(email, '123456');
 
@@ -36,7 +36,7 @@ void main() {
     expect(storage.stored?.requiresBaseCurrency, isTrue);
   });
 
-  test('a returning user is not asked for a base currency', () async {
+  test('a login with a base currency is not asked for one', () async {
     adapter.handler = (_) => ok(tokenBody(newUser: false));
 
     await repo.verifyOtp(email, '123456');
@@ -44,9 +44,9 @@ void main() {
     expect(storage.stored?.requiresBaseCurrency, isFalse);
   });
 
-  test('google sign-up behaves the same way', () async {
+  test('google sign-in behaves the same way', () async {
     adapter.handler = (_) =>
-        ok({'status': 'SIGNED_IN', ...tokenBody(newUser: true)});
+        ok({'status': 'SIGNED_IN', ...tokenBody(newUser: true, baseCurrencyId: null)});
 
     await repo.signInWithGoogle();
 
@@ -54,7 +54,7 @@ void main() {
   });
 
   test('choosing a currency clears the flag and keeps the tokens', () async {
-    adapter.handler = (_) => ok(tokenBody(newUser: true));
+    adapter.handler = (_) => ok(tokenBody(newUser: true, baseCurrencyId: null));
     await repo.verifyOtp(email, '123456');
     final emitted = <AuthSession?>[];
     final sub = repo.sessionChanges.listen(emitted.add);

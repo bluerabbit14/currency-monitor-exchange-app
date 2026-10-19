@@ -1,5 +1,10 @@
 import 'package:get_it/get_it.dart';
 
+import '../../features/alerts/data/datasources/alert_remote_data_source.dart';
+import '../../features/alerts/data/repositories/alert_repository_impl.dart';
+import '../../features/alerts/domain/repositories/alert_repository.dart';
+import '../../features/alerts/domain/usecases/alert_usecases.dart';
+import '../../features/alerts/presentation/bloc/alerts_cubit.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/datasources/google_sign_in_data_source.dart';
@@ -24,12 +29,24 @@ import '../../features/currency/domain/repositories/currency_repository.dart';
 import '../../features/currency/domain/usecases/get_currencies.dart';
 import '../../features/currency/domain/usecases/set_base_currency.dart';
 import '../../features/currency/presentation/bloc/base_currency_cubit.dart';
+import '../../features/favourite/data/datasources/favorite_remote_data_source.dart';
+import '../../features/favourite/data/repositories/favorite_repository_impl.dart';
+import '../../features/favourite/domain/repositories/favorite_repository.dart';
+import '../../features/favourite/domain/usecases/favorite_usecases.dart';
+import '../../features/favourite/presentation/bloc/asset_picker_cubit.dart';
+import '../../features/favourite/presentation/bloc/favorites_cubit.dart';
+import '../../features/notifications/data/datasources/notification_remote_data_source.dart';
+import '../../features/notifications/data/repositories/notification_repository_impl.dart';
+import '../../features/notifications/domain/repositories/notification_repository.dart';
+import '../../features/notifications/domain/usecases/notification_usecases.dart';
+import '../../features/notifications/presentation/bloc/notifications_cubit.dart';
 import '../../features/profile/data/datasources/profile_remote_data_source.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/domain/usecases/get_profile.dart';
 import '../../features/profile/presentation/bloc/profile_cubit.dart';
 import '../network/api_client.dart';
+import '../push/push_token_provider.dart';
 
 final sl = GetIt.instance;
 
@@ -70,6 +87,54 @@ Future<void> init() async {
   );
   sl.registerLazySingleton(
     () => CurrencyRemoteDataSource(
+      sl<ApiClient>(instanceName: authenticatedApiClient),
+    ),
+  );
+
+  // Notifications (preferences + device registration)
+  sl.registerFactory(() => NotificationsCubit(sl(), sl(), sl(), sl()));
+  sl.registerLazySingleton(() => GetNotificationPreferences(sl()));
+  sl.registerLazySingleton(() => SetPushEnabled(sl()));
+  sl.registerLazySingleton(() => RegisterDevice(sl()));
+  sl.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton(
+    () => NotificationRemoteDataSource(
+      sl<ApiClient>(instanceName: authenticatedApiClient),
+    ),
+  );
+  // Replace with a Firebase-backed provider to actually register devices.
+  sl.registerLazySingleton<PushTokenProvider>(
+    () => const NoPushTokenProvider(),
+  );
+
+  // Favorites
+  sl.registerFactory(() => FavoritesCubit(sl(), sl(), sl(), sl(), sl()));
+  sl.registerFactory(() => AssetPickerCubit(sl()));
+  sl.registerLazySingleton(() => GetFavorites(sl()));
+  sl.registerLazySingleton(() => GetAssets(sl()));
+  sl.registerLazySingleton(() => AddFavorite(sl()));
+  sl.registerLazySingleton(() => RemoveFavorite(sl()));
+  sl.registerLazySingleton(() => GetAssetQuote(sl()));
+  sl.registerLazySingleton<FavoriteRepository>(
+    () => FavoriteRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton(
+    () => FavoriteRemoteDataSource(
+      sl<ApiClient>(instanceName: authenticatedApiClient),
+    ),
+  );
+
+  // Alerts
+  sl.registerFactory(() => AlertsCubit(sl(), sl(), sl(), sl()));
+  sl.registerLazySingleton(() => GetAlerts(sl()));
+  sl.registerLazySingleton(() => CreateAlert(sl()));
+  sl.registerLazySingleton(() => UpdateAlert(sl()));
+  sl.registerLazySingleton(() => DeleteAlert(sl()));
+  sl.registerLazySingleton<AlertRepository>(() => AlertRepositoryImpl(sl()));
+  sl.registerLazySingleton(
+    () => AlertRemoteDataSource(
       sl<ApiClient>(instanceName: authenticatedApiClient),
     ),
   );

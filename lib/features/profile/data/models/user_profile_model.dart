@@ -31,6 +31,9 @@ class UserProfileModel {
       phoneNumber: text('phoneNumber'),
       profileImageUrl: text('profileImageUrl'),
       baseCurrency: baseCurrency,
+      notificationsEnabled: json['notificationsEnabled'] is bool
+          ? json['notificationsEnabled'] as bool
+          : null,
     );
   }
 }

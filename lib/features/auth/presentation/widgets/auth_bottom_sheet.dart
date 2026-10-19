@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'google_sign_in_button.dart';
+
 /// Reusable "Log in or sign up" sheet.
 ///
 /// Use it inline (e.g. docked at the bottom of a page):
@@ -80,6 +82,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      margin: EdgeInsets.fromLTRB(10, 0, 10, 20),
       padding: EdgeInsets.fromLTRB(
         24,
         24,
@@ -88,7 +91,10 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(32),
+          bottom: Radius.circular(32),
+        ),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -97,7 +103,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
             const Text(
               'Log in or sign up',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: AuthBottomSheet._ink,
               ),
@@ -109,7 +115,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              height: 54,
+              height: _appleButtonHeight,
               child: FilledButton(
                 onPressed: widget.isContinueLoading || widget.isGoogleLoading
                     ? null
@@ -137,58 +143,76 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
                       ),
               ),
             ),
-            const SizedBox(height: 28),
-            Row(
+            const SizedBox(height: 20),
+            const _OrDivider(),
+            const SizedBox(height: 20),
+            GoogleSignInButton(
+              borderRadius: 14,
+              isLoading: widget.isGoogleLoading,
+              onPressed: widget.isContinueLoading ? null : widget.onGoogle,
+            ),
+            const SizedBox(height: 12),
+            // Black Apple button with a white logo, sized to match the other
+            _appleButton(context),
+            const SizedBox(height: 24),
+            const Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 4,
               children: [
-                Expanded(
-                  child: _SocialButton(
-                    onTap: widget.isGoogleLoading || widget.isContinueLoading
-                        ? null
-                        : widget.onGoogle,
-                    icon: widget.isGoogleLoading
-                        ? const SizedBox.square(
-                            dimension: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2.5),
-                          )
-                        : const Text(
-                            'G',
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF4285F4),
-                            ),
-                          ),
-                  ),
+                Text(
+                  'By continuing, you agree to our',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF5B6075)),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: _SocialButton(
-                    onTap: widget.onApple,
-                    icon: const Icon(
-                      Icons.apple,
-                      size: 32,
-                      color: Colors.black,
+                _LegalLink('Terms of Service'),
+                Text(
+                  'and',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF5B6075)),
+                ),
+                _LegalLink('Privacy Policy'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static const _appleButtonHeight = 54.0;
+
+  /// Black button with a white Apple logo, matching the Google button's size
+  /// and label.
+  Widget _appleButton(BuildContext context) {
+    return SizedBox(
+      height: _appleButtonHeight,
+      width: double.infinity,
+      child: Material(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: widget.onApple ?? () {},
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.apple, color: Colors.white, size: 26),
+                SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    'Continue with Apple',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: GoogleSignInButton.labelFontSize,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 28),
-            const Text(
-              'By continuing, you agree to our',
-              style: TextStyle(fontSize: 14, color: Color(0xFF5B6075)),
-            ),
-            const SizedBox(height: 6),
-            const Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 14,
-              children: [
-                _LegalLink('Terms of Service'),
-                _LegalLink('Privacy Policy'),
-                _LegalLink('Content Policies'),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -205,7 +229,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          height: 56,
+          height: _appleButtonHeight,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: _fieldDecoration.copyWith(
             border: Border.all(
@@ -217,7 +241,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
           child: Row(
             children: [
               const Icon(Icons.mail_outline_rounded, color: Color(0xFF8A8FA3)),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: TextField(
                   controller: _emailController,
@@ -259,22 +283,24 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
   );
 }
 
-class _SocialButton extends StatelessWidget {
-  const _SocialButton({required this.icon, this.onTap});
-
-  final Widget icon;
-  final VoidCallback? onTap;
+class _OrDivider extends StatelessWidget {
+  const _OrDivider();
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFF3F4F8),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: SizedBox(height: 60, child: Center(child: icon)),
-      ),
+    const line = Expanded(child: Divider(height: 1, color: Color(0xFFE3E5EC)));
+    return const Row(
+      children: [
+        line,
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 14),
+          child: Text(
+            'or',
+            style: TextStyle(fontSize: 14, color: Color(0xFF8A8FA3)),
+          ),
+        ),
+        line,
+      ],
     );
   }
 }
@@ -289,10 +315,11 @@ class _LegalLink extends StatelessWidget {
     return Text(
       label,
       style: const TextStyle(
-        fontSize: 14,
+        fontSize: 12,
         color: Color(0xFF2B2F42),
+        fontWeight: FontWeight(600),
         decoration: TextDecoration.underline,
-        decorationStyle: TextDecorationStyle.dotted,
+        decorationStyle: TextDecorationStyle.solid,
       ),
     );
   }

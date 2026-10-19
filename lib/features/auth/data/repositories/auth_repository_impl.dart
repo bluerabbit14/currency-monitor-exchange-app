@@ -101,10 +101,10 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   Future<SignInResult> _store(AuthTokensModel tokens) async {
-    // A brand-new account must choose a base currency before using the app.
+    // No base currency yet: the user must choose one before using the app.
     final session = tokens.toSession(
       _now(),
-      requiresBaseCurrency: tokens.newUser,
+      requiresBaseCurrency: tokens.baseCurrencyId == null,
     );
     await _tokens.save(session);
     return SignInResult(session: session, isNewUser: tokens.newUser);

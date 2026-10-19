@@ -9,6 +9,7 @@ class UserProfile extends Equatable {
     this.phoneNumber,
     this.profileImageUrl,
     this.baseCurrency,
+    this.notificationsEnabled,
   });
 
   final String? displayName;
@@ -18,6 +19,9 @@ class UserProfile extends Equatable {
 
   /// The currency the user compares prices against; null until they pick one.
   final Currency? baseCurrency;
+
+  /// Whether push notifications are allowed; null when the backend did not say.
+  final bool? notificationsEnabled;
 
   /// The one contact line to show: the email when there is one, otherwise the
   /// phone number (never both).
@@ -29,6 +33,16 @@ class UserProfile extends Equatable {
     phoneNumber: phoneNumber,
     profileImageUrl: profileImageUrl,
     baseCurrency: currency,
+    notificationsEnabled: notificationsEnabled,
+  );
+
+  UserProfile withNotificationsEnabled(bool enabled) => UserProfile(
+    displayName: displayName,
+    email: email,
+    phoneNumber: phoneNumber,
+    profileImageUrl: profileImageUrl,
+    baseCurrency: baseCurrency,
+    notificationsEnabled: enabled,
   );
 
   @override
@@ -38,5 +52,6 @@ class UserProfile extends Equatable {
     phoneNumber,
     profileImageUrl,
     baseCurrency,
+    notificationsEnabled,
   ];
 }

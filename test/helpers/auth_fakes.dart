@@ -80,12 +80,14 @@ Map<String, dynamic> tokenBody({
   String refresh = 'refresh-1',
   int expiresIn = 900,
   bool? newUser,
+  String? baseCurrencyId = 'base-1',
 }) => {
   'accessToken': access,
   'refreshToken': refresh,
   'tokenType': 'Bearer',
   'expiresInSeconds': expiresIn,
   'newUser': ?newUser,
+  'baseCurrencyId': baseCurrencyId,
 };
 
 ApiClient clientFor(FakeAdapter adapter) {

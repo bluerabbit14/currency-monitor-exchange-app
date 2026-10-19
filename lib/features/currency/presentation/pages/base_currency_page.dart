@@ -8,8 +8,8 @@ import '../../domain/entities/currency.dart';
 import '../bloc/base_currency_cubit.dart';
 
 /// Shown right after a new account is created, instead of the app: the user
-/// has to choose a base currency before continuing. There is no back button;
-/// the only other way out is logging out.
+/// has to choose a base currency before continuing. There is no back button
+/// and no way to skip it.
 class BaseCurrencyPage extends StatelessWidget {
   const BaseCurrencyPage({super.key});
 
@@ -77,14 +77,7 @@ class _BaseCurrencyViewState extends State<_BaseCurrencyView> {
                   Expanded(
                     child: CustomScrollView(
                       slivers: [
-                        SliverToBoxAdapter(
-                          child: _Header(
-                            onLogout: state.isSaving
-                                ? null
-                                : () =>
-                                      context.read<AuthSessionCubit>().logout(),
-                          ),
-                        ),
+                        const SliverToBoxAdapter(child: _Header()),
                         SliverToBoxAdapter(
                           child: _SearchField(
                             controller: _search,
@@ -107,14 +100,12 @@ class _BaseCurrencyViewState extends State<_BaseCurrencyView> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.onLogout});
-
-  final VoidCallback? onLogout;
+  const _Header();
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -136,13 +127,6 @@ class _Header extends StatelessWidget {
                   style: TextStyle(fontSize: 14, color: Color(0xFF8A8A93)),
                 ),
               ],
-            ),
-          ),
-          TextButton(
-            onPressed: onLogout,
-            child: const Text(
-              'Log out',
-              style: TextStyle(color: Color(0xFF8A8A93)),
             ),
           ),
         ],

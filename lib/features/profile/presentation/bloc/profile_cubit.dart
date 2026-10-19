@@ -48,6 +48,14 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
   }
 
+  /// The user changed the push setting: reflect it without refetching.
+  void notificationsChanged(bool enabled) {
+    final current = state;
+    if (current is ProfileLoaded) {
+      emit(ProfileLoaded(current.profile.withNotificationsEnabled(enabled)));
+    }
+  }
+
   Future<void> load() async {
     if (state is! ProfileLoading) emit(const ProfileLoading());
     final result = await _getProfile(const NoParams());

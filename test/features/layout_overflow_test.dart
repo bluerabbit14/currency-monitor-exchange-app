@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fake_auth_repository.dart';
 import '../helpers/fake_currency_repository.dart';
+import '../helpers/fake_favorite_repository.dart';
 import '../helpers/fake_profile_repository.dart';
 
 /// Renders the screens that are not covered by their own layout tests at
@@ -26,6 +27,7 @@ void main() {
         await init();
         await useFakeProfileRepository();
         await useFakeCurrencyRepository();
+        await useFakeFavoriteRepository();
         final auth = FakeAuthRepository()
           ..restored = fakeSession.copyWith(requiresBaseCurrency: true);
 
@@ -60,6 +62,7 @@ void main() {
         await init();
         await useFakeProfileRepository();
         await useFakeCurrencyRepository();
+        await useFakeFavoriteRepository();
         final auth = FakeAuthRepository()..restored = fakeSession;
 
         tester.view.physicalSize = entry.value;

@@ -163,7 +163,7 @@ void main() {
       return Right(fakeSignIn);
     };
 
-    await tester.tap(find.text('G'));
+    await tester.tap(find.text('Continue with Google'));
     await tester.pumpAndSettle();
 
     expect(find.byType(OtpPage), findsOneWidget);
@@ -184,7 +184,7 @@ void main() {
       return Right(GoogleSignedIn(fakeSignIn));
     };
 
-    await tester.tap(find.text('G'));
+    await tester.tap(find.text('Continue with Google'));
     await tester.pumpAndSettle();
 
     expect(find.byType(HomeShellPage), findsOneWidget);

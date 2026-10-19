@@ -229,14 +229,13 @@ void main() {
       expect(find.text('No currencies found'), findsOneWidget);
     });
 
-    testWidgets('the user can log out from the gate', (tester) async {
+    testWidgets('there is no logout (or any other way out) on the gate', (
+      tester,
+    ) async {
       await pump(tester, newUser: true);
 
-      await tester.tap(find.text('Log out'));
-      await tester.pumpAndSettle();
-
-      expect(auth.logouts, 1);
-      expect(find.byType(BaseCurrencyPage), findsNothing);
+      expect(find.text('Log out'), findsNothing);
+      expect(find.byType(BackButton), findsNothing);
     });
   });
 }

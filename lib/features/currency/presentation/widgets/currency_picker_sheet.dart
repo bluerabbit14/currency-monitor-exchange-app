@@ -43,7 +43,7 @@ Future<Either<String, Currency>?> showCurrencyPickerSheet(
           heightFactor: 0.94,
           child: BlocProvider.value(
             value: cubit,
-            child: const _CurrencySheet(),
+            child: const _CurrencySheet(title: 'Your currency'),
           ),
         ),
       ),
@@ -55,6 +55,46 @@ Future<Either<String, Currency>?> showCurrencyPickerSheet(
     final state = cubit.state;
     if (state.status == BaseCurrencyStatus.saved) return Right(picked);
     return Left(state.error ?? 'Unable to update your currency');
+  } finally {
+    await cubit.close();
+  }
+}
+
+/// Bottom sheet that only *chooses* a currency (nothing is saved). Returns the
+/// pick when the sheet is closed, or null when nothing was picked. Currencies
+/// in [excludeCodes] are not offered.
+Future<Currency?> chooseCurrency(
+  BuildContext context, {
+  Currency? current,
+  Set<String> excludeCodes = const {},
+  String title = 'Add Currency',
+}) async {
+  final cubit = sl<BaseCurrencyCubit>()
+    ..setCurrent(current)
+    ..load();
+  try {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+        ),
+        child: FractionallySizedBox(
+          heightFactor: 0.94,
+          child: BlocProvider.value(
+            value: cubit,
+            child: _CurrencySheet(title: title, exclude: excludeCodes),
+          ),
+        ),
+      ),
+    );
+    return cubit.state.selected;
   } finally {
     await cubit.close();
   }
@@ -78,7 +118,10 @@ const _popularCodes = [
 ];
 
 class _CurrencySheet extends StatefulWidget {
-  const _CurrencySheet();
+  const _CurrencySheet({required this.title, this.exclude = const {}});
+
+  final String title;
+  final Set<String> exclude;
 
   @override
   State<_CurrencySheet> createState() => _CurrencySheetState();
@@ -100,7 +143,9 @@ class _CurrencySheetState extends State<_CurrencySheet> {
       builder: (context, state) {
         final q = _query.trim().toLowerCase();
         final searching = q.isNotEmpty;
-        final all = state.currencies;
+        final all = state.currencies
+            .where((c) => !widget.exclude.contains(c.code))
+            .toList();
         final popular = [
           for (final code in _popularCodes) ...all.where((c) => c.code == code),
         ];
@@ -125,7 +170,10 @@ class _CurrencySheetState extends State<_CurrencySheet> {
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
-            _Header(onClose: () => Navigator.of(context).pop()),
+            _Header(
+              title: widget.title,
+              onClose: () => Navigator.of(context).pop(),
+            ),
             Expanded(
               child: CustomScrollView(
                 slivers: [
@@ -250,8 +298,9 @@ class _CurrencySheetState extends State<_CurrencySheet> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.onClose});
+  const _Header({required this.title, required this.onClose});
 
+  final String title;
   final VoidCallback onClose;
 
   @override
@@ -280,9 +329,17 @@ class _Header extends StatelessWidget {
                 ),
               ),
             ),
-            const Text(
-              'Your currency',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 56),
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),

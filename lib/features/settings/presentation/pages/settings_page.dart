@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../auth/presentation/bloc/auth_session_cubit.dart';
+import '../../../alerts/presentation/pages/price_alerts_page.dart';
 import '../../../currency/presentation/widgets/currency_picker_sheet.dart';
+import '../../../notifications/presentation/widgets/notifications_sheet.dart';
 import '../../../profile/presentation/bloc/profile_cubit.dart';
 import '../../../profile/presentation/widgets/profile_header.dart';
 
@@ -69,11 +71,7 @@ class SettingsPage extends StatelessWidget {
             const SizedBox(height: 20),
             _SettingsCard(
               children: [
-                const _SettingsRow(
-                  icon: Icons.notifications_none_rounded,
-                  title: 'Notifications',
-                  value: 'Off',
-                ),
+                const _NotificationsRow(),
                 const _CurrencyRow(),
                 const _SettingsRow(
                   icon: Icons.auto_awesome_rounded,
@@ -110,6 +108,51 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Shows whether notifications are on and opens the Notifications sheet, from
+/// where the user can switch push on/off or go to their price alerts.
+class _NotificationsRow extends StatelessWidget {
+  const _NotificationsRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ProfileCubit, ProfileState>(
+      builder: (context, state) {
+        final loaded = state is ProfileLoaded ? state.profile : null;
+        final enabled = loaded?.notificationsEnabled;
+        return _SettingsRow(
+          icon: Icons.notifications_none_rounded,
+          title: 'Notifications',
+          value: enabled == null ? null : (enabled ? 'On' : 'Off'),
+          onTap: () async {
+            final profile = context.read<ProfileCubit>();
+            final navigator = Navigator.of(context);
+            final result = await showNotificationsSheet(
+              context,
+              pushEnabled: enabled,
+            );
+            final pushEnabled = result.pushEnabled;
+            if (pushEnabled != null && pushEnabled != enabled) {
+              profile.notificationsChanged(pushEnabled);
+            }
+            if (result.openAlerts) {
+              final current = profile.state;
+              await navigator.push(
+                MaterialPageRoute<void>(
+                  builder: (_) => PriceAlertsPage(
+                    baseCurrency: current is ProfileLoaded
+                        ? current.profile.baseCurrency
+                        : null,
+                  ),
+                ),
+              );
+            }
+          },
+        );
+      },
     );
   }
 }

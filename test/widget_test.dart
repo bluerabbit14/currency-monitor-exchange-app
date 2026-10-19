@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers/fake_auth_repository.dart';
 import 'helpers/fake_currency_repository.dart';
+import 'helpers/fake_favorite_repository.dart';
 import 'helpers/fake_profile_repository.dart';
 
 void main() {
@@ -15,6 +16,7 @@ void main() {
     await init();
     final profile = await useFakeProfileRepository();
     await useFakeCurrencyRepository();
+    await useFakeFavoriteRepository();
     final repo = FakeAuthRepository()..restored = fakeSession;
     final session = AuthSessionCubit(repo);
     await tester.pumpWidget(CurrencyApp(sessionCubit: session));
@@ -46,14 +48,16 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.widget<FloatingNavBar>(navigationBar).currentIndex, 2);
-    expect(find.text('Saved currencies will appear here.'), findsOneWidget);
+    expect(find.text('No favorites yet'), findsOneWidget);
 
     await tester.tap(
       find.descendant(of: navigationBar, matching: find.text('Settings')),
     );
     await tester.pumpAndSettle();
     expect(tester.widget<FloatingNavBar>(navigationBar).currentIndex, 3);
-    expect(profile.calls, 1);
+    // Favorites already fetched the profile (for the base currency) when it was
+    // opened; Settings fetches it again for its own cubit.
+    expect(profile.calls, 2);
     for (final row in [
       'Notifications',
       'Your currency',
