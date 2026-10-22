@@ -84,7 +84,7 @@ class _BrowseViewState extends State<_BrowseView> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 34,
+                              fontSize: 24,
                               fontWeight: FontWeight.w800,
                             ),
                           ),

@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../currency/domain/entities/currency.dart';
+import '../../../favourite/domain/entities/asset_item.dart';
+import '../../../favourite/domain/repositories/favorite_repository.dart';
 import '../../domain/entities/price_alert.dart';
 import '../../domain/usecases/alert_usecases.dart';
 import '../bloc/alerts_cubit.dart';
@@ -64,12 +66,32 @@ class _AlertsView extends StatelessWidget {
     );
   }
 
+  /// Null when the catalog cannot be loaded (the sheet then shows a flag).
+  Future<AssetKind?> _kindOf(String symbol) async {
+    final result = await sl<FavoriteRepository>().getAssetCatalog();
+    return result.fold((_) => null, (catalog) {
+      for (final entry in catalog.entries) {
+        if (entry.value.any(
+          (a) => a.symbol.toUpperCase() == symbol.toUpperCase(),
+        )) {
+          return entry.key;
+        }
+      }
+      return null;
+    });
+  }
+
   Future<void> _edit(BuildContext context, PriceAlert alert) async {
     final cubit = context.read<AlertsCubit>();
+    // An alert only stores the symbol; look up the asset's kind so the sheet
+    // shows a coin / commodity icon instead of a country flag.
+    final kind = await _kindOf(alert.base);
+    if (!context.mounted) return;
     await showAlertEditorSheet(
       context,
       quote: alert.quote,
       existing: alert,
+      fixedKind: kind,
       onSubmit: (base, condition, rate) => cubit.update(
         UpdateAlertParams(
           id: alert.id,

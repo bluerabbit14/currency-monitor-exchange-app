@@ -99,6 +99,7 @@ class _FavoritesView extends StatelessWidget {
       quote: quote,
       fixedBase: row.asset.symbol,
       fixedName: row.asset.name,
+      fixedKind: row.asset.kind,
       onSubmit: (base, condition, rate) async {
         final result = await sl<CreateAlert>()(
           CreateAlertParams(
@@ -210,19 +211,83 @@ class _FavoritesView extends StatelessWidget {
                 motion: const DrawerMotion(),
                 extentRatio: 0.5,
                 children: [
-                  SlidableAction(
+                  CustomSlidableAction(
                     onPressed: (_) => _alert(context, state.rows[i], state),
-                    backgroundColor: _blue,
-                    foregroundColor: Colors.white,
-                    icon: Icons.notifications_active_outlined,
-                    label: 'Alert',
+                    backgroundColor: const Color.fromRGBO(0, 0, 0, 0),
+                    padding: const EdgeInsets.all(2),
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: _blue,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _blue.withValues(alpha: 0.20),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.notifications_active_outlined,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                          SizedBox(height: 5),
+                          Text(
+                            'Alert',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  SlidableAction(
+                  CustomSlidableAction(
                     onPressed: (_) => _confirmDelete(context, state.rows[i]),
-                    backgroundColor: _down,
-                    foregroundColor: Colors.white,
-                    icon: Icons.delete_sharp,
-                    label: 'Delete',
+                    backgroundColor: const Color.fromRGBO(0, 0, 0, 0),
+                    padding: const EdgeInsets.all(2),
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: _down,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _down.withValues(alpha: 0.20),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.delete_sharp,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                          SizedBox(height: 5),
+                          Text(
+                            'Delete',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -256,7 +321,7 @@ class _Header extends StatelessWidget {
               'Favorites',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
             ),
           ),
         ),
@@ -270,7 +335,7 @@ class _Header extends StatelessWidget {
             customBorder: const CircleBorder(),
             onTap: onAdd,
             child: const SizedBox.square(
-              dimension: 48,
+              dimension: 40,
               child: Icon(Icons.add_rounded, size: 28),
             ),
           ),

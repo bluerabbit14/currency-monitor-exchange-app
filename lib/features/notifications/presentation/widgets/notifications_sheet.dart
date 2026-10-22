@@ -88,7 +88,7 @@ class _NotificationsSheet extends StatelessWidget {
               padding: EdgeInsets.fromLTRB(4, 22, 4, 16),
               child: Text(
                 'Notifications',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
               ),
             ),
             _OptionCard(
@@ -164,11 +164,14 @@ class _PushCard extends StatelessWidget {
               : () => context.read<NotificationsCubit>().setPush(
                   !state.pushEnabled,
                 ),
-          trailing: Switch.adaptive(
-            value: state.pushEnabled,
-            onChanged: state.isUpdating
-                ? null
-                : context.read<NotificationsCubit>().setPush,
+          trailing: Transform.scale(
+            scale: 0.75,
+            child: Switch.adaptive(
+              value: state.pushEnabled,
+              onChanged: state.isUpdating
+                  ? null
+                  : context.read<NotificationsCubit>().setPush,
+            ),
           ),
         ),
         if (state.error != null)
@@ -207,17 +210,17 @@ class _OptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(20),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Row(
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
                   color: tint,
                   borderRadius: BorderRadius.circular(16),
@@ -232,14 +235,14 @@ class _OptionCard extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 17,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 14, color: _muted),
+                      style: const TextStyle(fontSize: 12, color: _muted),
                     ),
                   ],
                 ),

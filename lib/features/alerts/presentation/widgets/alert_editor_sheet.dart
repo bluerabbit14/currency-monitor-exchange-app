@@ -1,8 +1,9 @@
-import 'package:country_flags/country_flags.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../currency/domain/entities/currency.dart';
+import '../../../favourite/domain/entities/asset_item.dart';
+import '../../../favourite/presentation/widgets/asset_flag.dart';
 import '../../../currency/presentation/widgets/currency_picker_sheet.dart';
 import '../../domain/entities/price_alert.dart';
 
@@ -29,6 +30,7 @@ Future<bool> showAlertEditorSheet(
   Future<String?> Function()? onDelete,
   String? fixedBase,
   String? fixedName,
+  AssetKind? fixedKind,
 }) async {
   final changed = await showModalBottomSheet<bool>(
     context: context,
@@ -49,6 +51,7 @@ Future<bool> showAlertEditorSheet(
         onDelete: onDelete,
         fixedBase: fixedBase,
         fixedName: fixedName,
+        fixedKind: fixedKind,
       ),
     ),
   );
@@ -75,6 +78,7 @@ class _AlertEditor extends StatefulWidget {
     this.onDelete,
     this.fixedBase,
     this.fixedName,
+    this.fixedKind,
   });
 
   final String quote;
@@ -83,6 +87,10 @@ class _AlertEditor extends StatefulWidget {
   final Future<String?> Function()? onDelete;
   final String? fixedBase;
   final String? fixedName;
+
+  /// Crypto and commodities have no country flag, so the row needs the kind to
+  /// pick the right icon. Defaults to fiat when unknown.
+  final AssetKind? fixedKind;
 
   @override
   State<_AlertEditor> createState() => _AlertEditorState();
@@ -223,6 +231,7 @@ class _AlertEditorState extends State<_AlertEditor> {
               code:
                   widget.existing?.base ?? widget.fixedBase ?? _currency?.code,
               name: widget.fixedName ?? _currency?.name,
+              kind: widget.fixedKind ?? AssetKind.fiat,
               onTap: _baseFixed || _busy ? null : _pickCurrency,
             ),
             const SizedBox(height: 22),
@@ -392,12 +401,14 @@ class _CurrencyRow extends StatelessWidget {
     required this.editing,
     required this.code,
     required this.name,
+    required this.kind,
     required this.onTap,
   });
 
   final bool editing;
   final String? code;
   final String? name;
+  final AssetKind kind;
   final VoidCallback? onTap;
 
   @override
@@ -420,11 +431,12 @@ class _CurrencyRow extends StatelessWidget {
                   child: Icon(Icons.add, color: Colors.white, size: 22),
                 )
               else
-                SizedBox(
-                  width: 34,
-                  child: CountryFlag.fromCurrencyCode(
-                    c,
-                    theme: const EmojiTheme(size: 28),
+                AssetFlag(
+                  asset: AssetItem(
+                    id: c,
+                    symbol: c,
+                    name: name ?? c,
+                    kind: kind,
                   ),
                 ),
               const SizedBox(width: 16),

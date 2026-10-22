@@ -85,7 +85,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
       margin: EdgeInsets.fromLTRB(10, 0, 10, 20),
       padding: EdgeInsets.fromLTRB(
         24,
-        24,
+        12,
         24,
         MediaQuery.of(context).padding.bottom + 20,
       ),
@@ -100,6 +100,15 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD0D3DC),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
             const Text(
               'Log in or sign up',
               style: TextStyle(

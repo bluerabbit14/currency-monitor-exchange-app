@@ -74,15 +74,15 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  /// The sheet cannot be dismissed: no tap outside, no drag, no back button.
-  /// It goes away when sign-in succeeds and the app swaps this page out.
+  /// The sheet can be dismissed by dragging down, tapping outside or back.
+  /// It also goes away when sign-in succeeds and the app swaps this page out.
   void _openSheet(BuildContext context) {
     final cubit = context.read<LoginCubit>();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      isDismissible: false,
-      enableDrag: false,
+      isDismissible: true,
+      enableDrag: true,
       // Slower than the default (250ms) so the sheet glides in.
       sheetAnimationStyle: const AnimationStyle(
         duration: Duration(milliseconds: 400),
@@ -92,18 +92,15 @@ class _LoginPageState extends State<LoginPage> {
       constraints: const BoxConstraints(maxWidth: double.infinity),
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => PopScope(
-        canPop: false,
-        // Its own Scaffold so snackbars show above the sheet, not behind it.
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          resizeToAvoidBottomInset: true,
-          body: Align(
-            alignment: Alignment.bottomCenter,
-            child: BlocBuilder<LoginCubit, LoginState>(
-              bloc: cubit,
-              builder: (context, state) => _sheet(context, cubit, state),
-            ),
+      // Its own Scaffold so snackbars show above the sheet, not behind it.
+      builder: (_) => Scaffold(
+        backgroundColor: Colors.transparent,
+        resizeToAvoidBottomInset: true,
+        body: Align(
+          alignment: Alignment.bottomCenter,
+          child: BlocBuilder<LoginCubit, LoginState>(
+            bloc: cubit,
+            builder: (context, state) => _sheet(context, cubit, state),
           ),
         ),
       ),
