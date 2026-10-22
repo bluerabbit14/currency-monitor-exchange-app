@@ -1,5 +1,6 @@
 import '../../../../core/network/api_client.dart';
 import '../../domain/entities/asset_item.dart';
+import '../../domain/entities/price_point.dart';
 
 class FavoriteRemoteDataSource {
   const FavoriteRemoteDataSource(this._client);
@@ -75,6 +76,56 @@ class FavoriteRemoteDataSource {
     final rate = first is Map ? first['rate'] : null;
     return rate is num ? rate.toDouble() : null;
   }
+
+  /// Every stored price in [from, to), oldest first. The first page says how
+  /// many pages there are; the rest are fetched together.
+  Future<List<PricePoint>> getHistory(
+    String symbol,
+    String quote,
+    DateTime from,
+    DateTime to,
+  ) async {
+    final path =
+        '/api/v1/rates/${Uri.encodeComponent(symbol)}/${Uri.encodeComponent(quote)}/history';
+    Future<Map<String, dynamic>?> page(int n) => _client.get(
+      path,
+      query: {
+        'from': from.toUtc().toIso8601String(),
+        'to': to.toUtc().toIso8601String(),
+        'page': n,
+        'size': _historyPageSize,
+      },
+    );
+
+    final first = await page(0);
+    final pages = <Map<String, dynamic>?>[first];
+    final totalPages = (first?['totalPages'] as num?)?.toInt() ?? 1;
+    if (totalPages > 1) {
+      pages.addAll(
+        await Future.wait([
+          for (var n = 1; n < totalPages && n < _maxHistoryPages; n++) page(n),
+        ]),
+      );
+    }
+    final points = <PricePoint>[];
+    for (final p in pages) {
+      final content = p?['content'];
+      if (content is! List) continue;
+      for (final item in content) {
+        if (item is! Map) continue;
+        final rate = item['rate'];
+        final time = DateTime.tryParse('${item['observedAt'] ?? ''}');
+        if (rate is num && time != null) {
+          points.add(PricePoint(time: time, rate: rate.toDouble()));
+        }
+      }
+    }
+    points.sort((a, b) => a.time.compareTo(b.time));
+    return points;
+  }
+
+  static const _historyPageSize = 100;
+  static const _maxHistoryPages = 30;
 
   static AssetItem _favorite(Object? raw) => _asset(raw, idKey: 'assetId');
 

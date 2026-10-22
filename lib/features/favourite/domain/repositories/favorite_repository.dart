@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
 import '../entities/asset_item.dart';
+import '../entities/price_point.dart';
 
 abstract class FavoriteRepository {
   /// The user's favorite assets, newest first.
@@ -21,5 +22,14 @@ abstract class FavoriteRepository {
   Future<Either<Failure, AssetQuote>> getQuote({
     required String symbol,
     required String quote,
+  });
+
+  /// Stored prices of [symbol] in [quote] between [from] and [to], oldest
+  /// first. May be empty when nothing was stored for that period.
+  Future<Either<Failure, List<PricePoint>>> getHistory({
+    required String symbol,
+    required String quote,
+    required DateTime from,
+    required DateTime to,
   });
 }

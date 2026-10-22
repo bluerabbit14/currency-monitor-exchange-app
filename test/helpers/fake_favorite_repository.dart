@@ -1,6 +1,7 @@
 import 'package:currency/core/di/injection.dart';
 import 'package:currency/core/error/failures.dart';
 import 'package:currency/features/favourite/domain/entities/asset_item.dart';
+import 'package:currency/features/favourite/domain/entities/price_point.dart';
 import 'package:currency/features/favourite/domain/repositories/favorite_repository.dart';
 import 'package:dartz/dartz.dart';
 
@@ -46,6 +47,11 @@ class FakeFavoriteRepository implements FavoriteRepository {
   final removed = <String>[];
   final quoteRequests = <String>[];
 
+  /// Stored prices returned by getHistory; [historyFailure] makes it fail.
+  List<PricePoint> history = [];
+  Failure? historyFailure;
+  final historyRequests = <String>[];
+
   @override
   Future<Either<Failure, List<AssetItem>>> getFavorites() async {
     loads++;
@@ -86,6 +92,18 @@ class FakeFavoriteRepository implements FavoriteRepository {
     if (f != null) return Left(f);
     favorites = favorites.where((a) => a.id != assetId).toList();
     return const Right(unit);
+  }
+
+  @override
+  Future<Either<Failure, List<PricePoint>>> getHistory({
+    required String symbol,
+    required String quote,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    historyRequests.add('$symbol/$quote');
+    final f = historyFailure;
+    return f != null ? Left(f) : Right(List.of(history));
   }
 
   @override

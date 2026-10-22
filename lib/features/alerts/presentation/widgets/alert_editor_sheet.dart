@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../currency/domain/entities/currency.dart';
 import '../../../favourite/domain/entities/asset_item.dart';
 import '../../../favourite/presentation/widgets/asset_flag.dart';
-import '../../../currency/presentation/widgets/currency_picker_sheet.dart';
 import '../../domain/entities/price_alert.dart';
+import 'alert_asset_picker_sheet.dart';
 
 /// Called with the chosen asset, condition and target. Returns null on success
 /// or the message to show inline (the sheet stays open on failure).
@@ -99,7 +98,7 @@ class _AlertEditor extends StatefulWidget {
 class _AlertEditorState extends State<_AlertEditor> {
   late final TextEditingController _price;
   late AlertCondition _condition;
-  Currency? _currency;
+  AssetItem? _asset;
   bool _busy = false;
   String? _error;
 
@@ -127,17 +126,17 @@ class _AlertEditorState extends State<_AlertEditor> {
   double? get _rate => parseTargetRate(_price.text);
 
   bool get _canSubmit =>
-      !_busy && _rate != null && (_baseFixed || _currency != null);
+      !_busy && _rate != null && (_baseFixed || _asset != null);
 
-  Future<void> _pickCurrency() async {
-    final picked = await chooseCurrency(
+  Future<void> _pickAsset() async {
+    final picked = await chooseAlertAsset(
       context,
-      current: _currency,
-      excludeCodes: {widget.quote},
+      current: _asset,
+      excludeSymbols: {widget.quote},
     );
     if (picked != null && mounted) {
       setState(() {
-        _currency = picked;
+        _asset = picked;
         _error = null;
       });
     }
@@ -145,7 +144,7 @@ class _AlertEditorState extends State<_AlertEditor> {
 
   Future<void> _submit() async {
     final rate = _rate;
-    final base = widget.existing?.base ?? widget.fixedBase ?? _currency?.code;
+    final base = widget.existing?.base ?? widget.fixedBase ?? _asset?.symbol;
     if (rate == null || base == null || _busy) return;
     FocusScope.of(context).unfocus();
     setState(() {
@@ -225,14 +224,13 @@ class _AlertEditorState extends State<_AlertEditor> {
               title: _editing ? 'Edit Alert' : 'My Alerts',
               onClose: () => Navigator.of(context).pop(false),
             ),
-            const _Label('Allowed currencies'),
+            const _Label('Asset'),
             _CurrencyRow(
               editing: _baseFixed,
-              code:
-                  widget.existing?.base ?? widget.fixedBase ?? _currency?.code,
-              name: widget.fixedName ?? _currency?.name,
-              kind: widget.fixedKind ?? AssetKind.fiat,
-              onTap: _baseFixed || _busy ? null : _pickCurrency,
+              code: widget.existing?.base ?? widget.fixedBase ?? _asset?.symbol,
+              name: widget.fixedName ?? _asset?.name,
+              kind: widget.fixedKind ?? _asset?.kind ?? AssetKind.fiat,
+              onTap: _baseFixed || _busy ? null : _pickAsset,
             ),
             const SizedBox(height: 22),
             const _Label('Notify when price is'),
@@ -443,7 +441,7 @@ class _CurrencyRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   c == null
-                      ? 'Add Currency'
+                      ? 'Add Asset'
                       : (name == null ? c : '$c · $name'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

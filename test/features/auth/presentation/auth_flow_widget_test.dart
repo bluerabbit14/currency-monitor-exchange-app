@@ -91,18 +91,22 @@ void main() {
     },
   );
 
-  testWidgets("the sheet cannot be dismissed by tapping outside or back", (
+  testWidgets('the sheet can be dismissed by tapping outside or back', (
     tester,
   ) async {
     await pumpApp(tester);
 
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
+    expect(find.text('Log in or sign up'), findsNothing);
+
+    await tester.tap(find.text('Get started'));
+    await tester.pumpAndSettle();
     expect(find.text('Log in or sign up'), findsOneWidget);
 
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.text('Log in or sign up'), findsOneWidget);
+    expect(find.text('Log in or sign up'), findsNothing);
   });
 
   testWidgets('a stored session opens the home screen directly', (

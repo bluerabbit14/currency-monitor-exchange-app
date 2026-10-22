@@ -6,6 +6,7 @@ import '../../../../core/format/number_format.dart';
 import '../../../favourite/domain/entities/asset_item.dart';
 import '../../../favourite/presentation/widgets/asset_flag.dart';
 import '../../../favourite/presentation/widgets/asset_search_and_tabs.dart';
+import '../../../favourite/presentation/pages/asset_detail_page.dart';
 import '../bloc/browse_cubit.dart';
 
 /// Every active asset, by type, priced in the user's base currency, with a
@@ -216,47 +217,55 @@ class _AssetRowState extends State<_AssetRow> {
   @override
   Widget build(BuildContext context) {
     final asset = widget.asset;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        children: [
-          AssetFlag(asset: asset),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  asset.symbol,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
+    return InkWell(
+      onTap: () => AssetDetailPage.open(
+        context,
+        asset: asset,
+        quoteCurrency: widget.quoteCurrency,
+        isFavorite: asset.isFavorite,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            AssetFlag(asset: asset),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    asset.symbol,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  asset.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, color: _muted),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    asset.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, color: _muted),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          // Capped so long prices ellipsize instead of overflowing the row.
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.sizeOf(context).width * 0.5,
+            const SizedBox(width: 12),
+            // Capped so long prices ellipsize instead of overflowing the row.
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.sizeOf(context).width * 0.5,
+              ),
+              child: _Price(
+                quote: widget.quote,
+                quoteCurrency: widget.quoteCurrency,
+              ),
             ),
-            child: _Price(
-              quote: widget.quote,
-              quoteCurrency: widget.quoteCurrency,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

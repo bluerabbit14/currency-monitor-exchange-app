@@ -6,9 +6,11 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/format/number_format.dart';
 import '../../../alerts/domain/usecases/alert_usecases.dart';
 import '../../../alerts/presentation/widgets/alert_editor_sheet.dart';
+import '../../domain/entities/asset_item.dart';
 import '../bloc/favorites_cubit.dart';
 import '../widgets/asset_flag.dart';
 import '../widgets/asset_picker_sheet.dart';
+import 'asset_detail_page.dart';
 
 /// The user's favorite assets, each priced in their base currency with its
 /// 24-hour change. Pull to refresh, swipe a row left to remove it, "+" to add.
@@ -37,6 +39,23 @@ class _FavoritesView extends StatelessWidget {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Opens the asset's detail page; its favorite flag may change there, so the
+  /// list reloads when it did.
+  Future<void> _openDetail(
+    BuildContext context,
+    AssetItem asset,
+    FavoritesState state,
+  ) async {
+    final cubit = context.read<FavoritesCubit>();
+    final changed = await AssetDetailPage.open(
+      context,
+      asset: asset,
+      quoteCurrency: state.quoteCurrency,
+      isFavorite: true,
+    );
+    if (changed) await cubit.load(refresh: true);
   }
 
   Future<void> _add(BuildContext context) async {
@@ -294,6 +313,7 @@ class _FavoritesView extends StatelessWidget {
               child: _FavoriteTile(
                 row: state.rows[i],
                 quoteCurrency: state.quoteCurrency,
+                onTap: () => _openDetail(context, state.rows[i].asset, state),
               ),
             ),
             if (i < state.rows.length - 1)
@@ -385,54 +405,62 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _FavoriteTile extends StatelessWidget {
-  const _FavoriteTile({required this.row, required this.quoteCurrency});
+  const _FavoriteTile({
+    required this.row,
+    required this.quoteCurrency,
+    required this.onTap,
+  });
 
   final FavoriteRow row;
   final String quoteCurrency;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final asset = row.asset;
-    return Container(
-      // Opaque, so the swipe-to-delete background is hidden until dragged.
-      color: _background,
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        children: [
-          AssetFlag(asset: asset),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  asset.symbol,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        // Opaque, so the swipe-to-delete background is hidden until dragged.
+        color: _background,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            AssetFlag(asset: asset),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    asset.symbol,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  asset.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, color: _muted),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    asset.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, color: _muted),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          // Capped so long prices ellipsize instead of overflowing the row.
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.sizeOf(context).width * 0.5,
+            const SizedBox(width: 12),
+            // Capped so long prices ellipsize instead of overflowing the row.
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.sizeOf(context).width * 0.5,
+              ),
+              child: _Price(row: row, quoteCurrency: quoteCurrency),
             ),
-            child: _Price(row: row, quoteCurrency: quoteCurrency),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -118,7 +118,7 @@ class _AlertsView extends StatelessWidget {
                   padding: EdgeInsets.fromLTRB(2, 16, 2, 24),
                   child: Text(
                     'Price Alerts',
-                    style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
                   ),
                 ),
                 ..._content(context, state),
@@ -351,7 +351,7 @@ class _AddAlertButton extends StatelessWidget {
           radius: 26,
         ),
         child: const SizedBox(
-          height: 82,
+          height: 62,
           child: Center(
             child: Row(
               mainAxisSize: MainAxisSize.min,

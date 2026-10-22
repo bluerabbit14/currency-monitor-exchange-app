@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers/fake_alerts_notifications.dart';
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_currency_repository.dart';
+import '../../helpers/fake_favorite_repository.dart';
 import '../../helpers/fake_profile_repository.dart';
 
 const aed = Currency(id: 'id-aed', code: 'AED', name: 'UAE Dirham');
@@ -24,6 +25,7 @@ void main() {
   late FakeCurrencyRepository currencies;
   late FakeNotificationRepository notifications;
   late FakeAlertRepository alerts;
+  late FakeFavoriteRepository assetCatalog;
   late FakePushTokenProvider push;
 
   setUp(() async {
@@ -34,6 +36,8 @@ void main() {
     notifications = await useFakeNotificationRepository();
     alerts = await useFakeAlertRepository();
     push = await useFakePushToken();
+    assetCatalog = await useFakeFavoriteRepository();
+    assetCatalog.assets = [usdAsset, eurAsset, inrAsset, aedAsset, btcAsset];
     currencies.list = const Right([usd, eur, inr, aed]);
     profile.result = const Right(
       UserProfile(
@@ -350,12 +354,10 @@ void main() {
     }
 
     Future<void> chooseEuro(WidgetTester tester) async {
-      await tester.tap(inSheet(find.text('Add Currency')));
+      await tester.tap(inSheet(find.text('Add Asset')));
       await tester.pumpAndSettle();
-      // Two sheets are open now; the chooser is on top.
+      // Two sheets are open now; tapping a row picks it and closes the chooser.
       await tester.tap(find.text('EUR').last);
-      await tester.pump();
-      await tester.tap(find.byIcon(Icons.close_rounded).last);
       await tester.pumpAndSettle();
     }
 
@@ -363,8 +365,8 @@ void main() {
       await openCreate(tester);
 
       expect(find.text('My Alerts'), findsOneWidget);
-      expect(find.text('Allowed currencies'), findsOneWidget);
-      expect(find.text('Add Currency'), findsOneWidget);
+      expect(find.text('Asset'), findsOneWidget);
+      expect(find.text('Add Asset'), findsOneWidget);
       expect(find.text('Notify when price is'), findsOneWidget);
       expect(find.text('above'), findsOneWidget);
       expect(find.text('below'), findsOneWidget);
@@ -374,21 +376,21 @@ void main() {
       expect(tester.widget<FilledButton>(button).onPressed, isNull);
     });
 
-    testWidgets('the currency chooser never offers the base currency', (
+    testWidgets('the asset chooser never offers the base currency', (
       tester,
     ) async {
       await openCreate(tester);
 
-      await tester.tap(inSheet(find.text('Add Currency')));
+      await tester.tap(inSheet(find.text('Add Asset')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Add Currency'), findsNWidgets(2));
+      expect(find.text('Add Asset'), findsNWidgets(2));
       expect(find.text('EUR'), findsWidgets);
       // AED appears once: the quote label of the editor behind the chooser.
       expect(find.text('AED'), findsOneWidget);
     });
 
-    testWidgets('create needs a currency and a positive price', (tester) async {
+    testWidgets('create needs an asset and a positive price', (tester) async {
       await openCreate(tester);
       final button = find.widgetWithText(FilledButton, 'Create Alert');
 
@@ -511,7 +513,7 @@ void main() {
       // The watched currency cannot be changed: tapping the row does nothing.
       await tester.tap(inSheet(find.text('EUR')));
       await tester.pumpAndSettle();
-      expect(find.text('Add Currency'), findsNothing);
+      expect(find.text('Add Asset'), findsNothing);
     });
 
     testWidgets('saving sends only what changed', (tester) async {

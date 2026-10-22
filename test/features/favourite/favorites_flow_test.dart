@@ -481,7 +481,7 @@ void main() {
     ];
     await openFavorites(tester);
     final title = find.byWidgetPredicate(
-      (w) => w is Text && w.data == 'Favorites' && w.style?.fontSize == 34,
+      (w) => w is Text && w.data == 'Favorites' && w.style?.fontSize == 24,
     );
     final titleTop = tester.getTopLeft(title).dy;
     final addTop = tester.getTopLeft(find.byIcon(Icons.add_rounded)).dy;

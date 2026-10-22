@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart'; // TEMP: debugPrint in _fromDio
 
 import '../constant/api_constants.dart';
 import 'api_exception.dart';
@@ -139,8 +138,6 @@ class ApiClient {
   }
 
   static NetworkException _fromDio(DioException e) {
-    // TEMP: remove once the "unable to reach the server" cause is known.
-    debugPrint('${e.type} ${e.error} ${e.requestOptions.uri}');
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:

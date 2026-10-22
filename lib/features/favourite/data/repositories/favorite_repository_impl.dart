@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/api_guard.dart';
 import '../../domain/entities/asset_item.dart';
+import '../../domain/entities/price_point.dart';
 import '../../domain/repositories/favorite_repository.dart';
 import '../datasources/favorite_remote_data_source.dart';
 
@@ -61,6 +62,14 @@ class FavoriteRepositoryImpl implements FavoriteRepository {
       return AssetQuote(rate: rate, change: change);
     });
   }
+
+  @override
+  Future<Either<Failure, List<PricePoint>>> getHistory({
+    required String symbol,
+    required String quote,
+    required DateTime from,
+    required DateTime to,
+  }) => guardApi(() => remote.getHistory(symbol, quote, from, to));
 }
 
 /// Orders favorites by when they were added, newest first. Favorites without

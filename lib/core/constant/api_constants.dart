@@ -11,8 +11,10 @@ abstract final class ApiConstants {
 
   static const String baseUrl = isAppLive ? liveApiBaseUrl : stagingApiBaseUrl;
 
-  static const Duration connectTimeout = Duration(seconds: 15);
-  static const Duration receiveTimeout = Duration(seconds: 20);
+  // Generous because the Render host sleeps when idle and a cold start can
+  // take a minute before the first response.
+  static const Duration connectTimeout = Duration(seconds: 30);
+  static const Duration receiveTimeout = Duration(seconds: 75);
 
   static const String otpSend = '/api/v1/auth/otp/send';
   static const String otpVerify = '/api/v1/auth/otp/verify';

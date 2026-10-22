@@ -132,6 +132,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => AddFavorite(sl()));
   sl.registerLazySingleton(() => RemoveFavorite(sl()));
   sl.registerLazySingleton(() => GetAssetQuote(sl()));
+  sl.registerLazySingleton(() => GetAssetHistory(sl()));
   sl.registerLazySingleton<FavoriteRepository>(
     () => FavoriteRepositoryImpl(sl()),
   );

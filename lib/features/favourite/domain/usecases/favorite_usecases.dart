@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../entities/asset_item.dart';
+import '../entities/price_point.dart';
 import '../repositories/favorite_repository.dart';
 
 class GetFavorites implements UseCase<List<AssetItem>, NoParams> {
@@ -68,4 +69,36 @@ class AssetQuoteParams extends Equatable {
 
   @override
   List<Object?> get props => [symbol, quote];
+}
+
+class GetAssetHistory implements UseCase<List<PricePoint>, AssetHistoryParams> {
+  const GetAssetHistory(this.repository);
+
+  final FavoriteRepository repository;
+
+  @override
+  Future<Either<Failure, List<PricePoint>>> call(AssetHistoryParams params) =>
+      repository.getHistory(
+        symbol: params.symbol,
+        quote: params.quote,
+        from: params.from,
+        to: params.to,
+      );
+}
+
+class AssetHistoryParams extends Equatable {
+  const AssetHistoryParams({
+    required this.symbol,
+    required this.quote,
+    required this.from,
+    required this.to,
+  });
+
+  final String symbol;
+  final String quote;
+  final DateTime from;
+  final DateTime to;
+
+  @override
+  List<Object?> get props => [symbol, quote, from, to];
 }
