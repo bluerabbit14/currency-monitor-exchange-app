@@ -68,7 +68,7 @@ void main() {
   testWidgets('splash, then login when signed out', (tester) async {
     session = AuthSessionCubit(repo);
     await tester.pumpWidget(CurrencyApp(sessionCubit: session));
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('MoneyEx'), findsOneWidget);
 
     await session.start();
     await tester.pump();

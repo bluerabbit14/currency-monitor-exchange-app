@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/api_guard.dart';
+import '../../../../core/push/push_token_provider.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/contact_identifier.dart';
 import '../../domain/entities/google_sign_in_outcome.dart';
@@ -17,12 +18,15 @@ class AuthRepositoryImpl implements AuthRepository {
     this._remote,
     this._google,
     this._tokens, {
+    PushTokenProvider? push,
     DateTime Function()? now,
-  }) : _now = now ?? DateTime.now;
+  }) : _push = push ?? const NoPushTokenProvider(),
+       _now = now ?? DateTime.now;
 
   final AuthRemoteDataSource _remote;
   final GoogleSignInDataSource _google;
   final TokenManager _tokens;
+  final PushTokenProvider _push;
   final DateTime Function() _now;
 
   @override
@@ -94,7 +98,12 @@ class AuthRepositoryImpl implements AuthRepository {
     await _google.signOut();
     if (session == null) return;
     try {
-      await _remote.logout(session.refreshToken);
+      // Naming this device keeps the user's other devices registered.
+      final fcmToken = await _push
+          .fcmToken()
+          .timeout(const Duration(seconds: 3), onTimeout: () => null)
+          .catchError((_) => null);
+      await _remote.logout(session.refreshToken, fcmToken: fcmToken);
     } catch (e) {
       // The refresh token stays valid server-side until it expires (30 days).
     }

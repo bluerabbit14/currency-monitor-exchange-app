@@ -26,10 +26,12 @@ class AuthRemoteDataSource {
         await _body(ApiConstants.refreshToken, {'refreshToken': refreshToken}),
       );
 
-  Future<void> logout(String refreshToken) async {
+  /// [fcmToken] is this device's push token: the backend then deactivates only
+  /// this device's registration along with the session.
+  Future<void> logout(String refreshToken, {String? fcmToken}) async {
     await _client.post(
       ApiConstants.logout,
-      data: {'refreshToken': refreshToken},
+      data: {'refreshToken': refreshToken, 'fcmToken': ?fcmToken},
     );
   }
 

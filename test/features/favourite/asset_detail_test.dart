@@ -71,7 +71,7 @@ void main() {
     });
 
     test('switching the interval re-buckets without another request', () async {
-      repo.history = [at(0, 1), at(1, 2), at(6, 3)];
+      repo.history = [at(0, 1), at(1, 2), at(12, 3)];
       final c = cubit();
       await c.load();
 

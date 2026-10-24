@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../../../helpers/fake_alerts_notifications.dart';
+
 import 'package:currency/core/constant/api_constants.dart';
 import 'package:currency/core/error/failures.dart';
 import 'package:currency/core/network/api_client.dart';
@@ -372,6 +374,30 @@ void main() {
         expect(adapter.requests.single.data, {'refreshToken': 'old-refresh'});
         expect(emitted, [null]);
         await sub.cancel();
+      },
+    );
+
+    test(
+      'logout names this device so only its registration is removed',
+      () async {
+        final push = FakePushTokenProvider('fcm-1');
+        final remote = remoteFor(adapter);
+        final withPush = AuthRepositoryImpl(
+          remote,
+          google,
+          tokens,
+          push: push,
+          now: () => now,
+        );
+        storage.stored = session();
+        adapter.handler = (o) => noContent();
+
+        await withPush.logout();
+
+        expect(adapter.requests.single.data, {
+          'refreshToken': 'old-refresh',
+          'fcmToken': 'fcm-1',
+        });
       },
     );
 

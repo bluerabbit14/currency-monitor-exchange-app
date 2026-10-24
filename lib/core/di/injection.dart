@@ -42,6 +42,7 @@ import '../../features/notifications/data/repositories/notification_repository_i
 import '../../features/notifications/domain/repositories/notification_repository.dart';
 import '../../features/notifications/domain/usecases/notification_usecases.dart';
 import '../../features/notifications/presentation/bloc/notifications_cubit.dart';
+import '../../features/notifications/presentation/bloc/push_device_registrar.dart';
 import '../../features/settings/data/datasources/start_screen_local_data_source.dart';
 import '../../features/settings/data/repositories/start_screen_repository_impl.dart';
 import '../../features/settings/domain/repositories/start_screen_repository.dart';
@@ -73,7 +74,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => SignInWithGoogle(sl()));
   sl.registerLazySingleton(() => VerifyGoogleLink(sl()));
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(sl(), sl(), sl()),
+    () => AuthRepositoryImpl(sl(), sl(), sl(), push: sl()),
   );
   sl.registerLazySingleton(() => TokenManager(sl(), sl()));
   sl.registerLazySingleton(() => AuthRemoteDataSource(ApiClient.plain()));
@@ -111,10 +112,10 @@ Future<void> init() async {
       sl<ApiClient>(instanceName: authenticatedApiClient),
     ),
   );
-  // Replace with a Firebase-backed provider to actually register devices.
   sl.registerLazySingleton<PushTokenProvider>(
-    () => const NoPushTokenProvider(),
+    () => const FirebasePushTokenProvider(),
   );
+  sl.registerLazySingleton(() => PushDeviceRegistrar(sl(), sl()));
 
   // Settings (start screen, stored on the device)
   sl.registerLazySingleton(() => StartScreenCubit(sl()));

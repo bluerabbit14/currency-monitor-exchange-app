@@ -7,6 +7,7 @@ import 'package:currency/features/alerts/presentation/bloc/alerts_cubit.dart';
 import 'package:currency/features/notifications/domain/entities/notification_preferences.dart';
 import 'package:currency/features/notifications/domain/usecases/notification_usecases.dart';
 import 'package:currency/features/notifications/presentation/bloc/notifications_cubit.dart';
+import 'package:currency/features/notifications/presentation/bloc/push_device_registrar.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -107,6 +108,78 @@ void main() {
       await cubit.setPush(true);
       expect(repo.registered, isEmpty);
       await cubit.close();
+    });
+
+    test(
+      'declining the permission leaves the setting off and untouched',
+      () async {
+        final repo = FakeNotificationRepository()..push = false;
+        final tokens = FakePushTokenProvider('tok')..permissionGranted = false;
+        final cubit = NotificationsCubit(
+          GetNotificationPreferences(repo),
+          SetPushEnabled(repo),
+          RegisterDevice(repo),
+          tokens,
+        )..seed(false);
+
+        await cubit.setPush(true);
+
+        expect(cubit.state.pushEnabled, isFalse);
+        expect(cubit.state.error, isNotNull);
+        expect(repo.setCalls, isEmpty);
+        expect(repo.registered, isEmpty);
+        await cubit.close();
+      },
+    );
+
+    test('turning it on asks permission and registers the device', () async {
+      final repo = FakeNotificationRepository()..push = false;
+      final tokens = FakePushTokenProvider('tok');
+      final cubit = NotificationsCubit(
+        GetNotificationPreferences(repo),
+        SetPushEnabled(repo),
+        RegisterDevice(repo),
+        tokens,
+      )..seed(false);
+
+      await cubit.setPush(true);
+
+      expect(tokens.permissionRequests, 1);
+      expect(repo.registered, ['tok']);
+      await cubit.close();
+    });
+  });
+
+  group('PushDeviceRegistrar', () {
+    test(
+      'asks permission and registers on sign-in, again on refresh',
+      () async {
+        final repo = FakeNotificationRepository();
+        final tokens = FakePushTokenProvider('t1');
+        final registrar = PushDeviceRegistrar(tokens, RegisterDevice(repo));
+
+        await registrar.onSignedIn();
+        expect(tokens.permissionRequests, 1);
+        expect(repo.registered, ['t1']);
+
+        tokens.refreshes.add('t2');
+        await Future<void>.delayed(Duration.zero);
+        expect(repo.registered, ['t1', 't2']);
+
+        await registrar.onSignedOut();
+        tokens.refreshes.add('t3');
+        await Future<void>.delayed(Duration.zero);
+        expect(repo.registered, ['t1', 't2']);
+      },
+    );
+
+    test('registers nothing when the permission is declined', () async {
+      final repo = FakeNotificationRepository();
+      final tokens = FakePushTokenProvider('t1')..permissionGranted = false;
+
+      await PushDeviceRegistrar(tokens, RegisterDevice(repo)).onSignedIn();
+
+      expect(repo.registered, isEmpty);
     });
   });
 

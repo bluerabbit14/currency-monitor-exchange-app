@@ -50,7 +50,7 @@ void main() {
 
     expect(find.text('Euro'), findsOneWidget);
     expect(find.text('AED 4.20'), findsOneWidget);
-    for (final label in ['5m', '15m', '1H', '6H', '1D']) {
+    for (final label in ['10m', '1H', '1D', '1W', '1M']) {
       expect(find.text(label), findsOneWidget);
     }
     expect(find.text('High'), findsOneWidget);
@@ -86,7 +86,7 @@ void main() {
   testWidgets('tapping an interval keeps the page working', (tester) async {
     await open(tester);
 
-    await tester.tap(find.text('5m'));
+    await tester.tap(find.text('10m'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('1D'));
     await tester.pumpAndSettle();

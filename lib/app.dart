@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -5,6 +7,7 @@ import 'core/di/injection.dart';
 import 'features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/currency/presentation/pages/base_currency_page.dart';
+import 'features/notifications/presentation/bloc/push_device_registrar.dart';
 import 'features/shell/presentation/pages/home_shell_page.dart';
 import 'features/splash/presentation/pages/splash_page.dart';
 
@@ -30,13 +33,26 @@ class _CurrencyAppState extends State<CurrencyApp> {
         navigatorKey: _navigatorKey,
         // Signing in or out swaps `home`, but routes pushed on top of it (the
         // OTP screen, anything opened from Settings) would stay on screen.
-        builder: (context, child) =>
+        builder: (context, child) => MultiBlocListener(
+          listeners: [
             BlocListener<AuthSessionCubit, AuthSessionState>(
               listener: (_, _) => _navigatorKey.currentState?.popUntil(
                 (route) => route.isFirst,
               ),
-              child: child,
             ),
+            // Right after sign-in: ask for the notification permission and
+            // register this device; stop keeping it registered on sign-out.
+            BlocListener<AuthSessionCubit, AuthSessionState>(
+              listenWhen: (previous, current) =>
+                  previous is AuthSessionAuthenticated !=
+                  current is AuthSessionAuthenticated,
+              listener: (_, state) => state is AuthSessionAuthenticated
+                  ? unawaited(sl<PushDeviceRegistrar>().onSignedIn())
+                  : unawaited(sl<PushDeviceRegistrar>().onSignedOut()),
+            ),
+          ],
+          child: child!,
+        ),
         home: BlocBuilder<AuthSessionCubit, AuthSessionState>(
           builder: (context, state) => switch (state) {
             AuthSessionUnknown() => const SplashPage(),

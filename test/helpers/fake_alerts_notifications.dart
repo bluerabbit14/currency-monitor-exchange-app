@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:currency/core/di/injection.dart';
 import 'package:currency/core/error/failures.dart';
 import 'package:currency/core/push/push_token_provider.dart';
@@ -147,9 +149,21 @@ class FakePushTokenProvider implements PushTokenProvider {
   FakePushTokenProvider([this.token]);
 
   String? token;
+  bool permissionGranted = true;
+  int permissionRequests = 0;
+  final refreshes = StreamController<String>.broadcast();
 
   @override
   Future<String?> fcmToken() async => token;
+
+  @override
+  Future<bool> requestPermission() async {
+    permissionRequests++;
+    return permissionGranted;
+  }
+
+  @override
+  Stream<String> get tokenRefreshes => refreshes.stream;
 }
 
 Future<FakeAlertRepository> useFakeAlertRepository() async {

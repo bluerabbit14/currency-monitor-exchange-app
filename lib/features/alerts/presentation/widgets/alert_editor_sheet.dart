@@ -440,9 +440,7 @@ class _CurrencyRow extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
-                  c == null
-                      ? 'Add Asset'
-                      : (name == null ? c : '$c · $name'),
+                  c == null ? 'Add Asset' : (name == null ? c : '$c · $name'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(

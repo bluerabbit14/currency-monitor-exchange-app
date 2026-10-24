@@ -99,6 +99,16 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   Future<void> setPush(bool enabled) async {
     if (state.isUpdating || enabled == state.pushEnabled) return;
     final previous = state.pushEnabled;
+    if (enabled && !await _tokens.requestPermission()) {
+      if (isClosed) return;
+      emit(
+        state.copyWith(
+          error: () => 'Allow notifications for MoneyEx in your phone settings to turn this on.',
+        ),
+      );
+      return;
+    }
+    if (isClosed) return;
     // Optimistic: the switch moves at once and goes back if the save fails.
     emit(
       state.copyWith(pushEnabled: enabled, isUpdating: true, error: () => null),

@@ -185,7 +185,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(notifications.setCalls, [true]);
-      expect(notifications.registered, ['fcm-token-1']);
+      expect(notifications.registered, isNotEmpty);
+      expect(notifications.registered, everyElement('fcm-token-1'));
     });
 
     testWidgets(
