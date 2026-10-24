@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 
@@ -17,7 +15,8 @@ Future<void> main() async {
   await init();
   // The home shell opens on the saved start screen, so read it first.
   await sl<StartScreenCubit>().load();
-  // Checks the stored session; the app shows a splash until it resolves.
-  unawaited(sl<AuthSessionCubit>().start());
+  // Restore the stored session first so the app opens straight on the right
+  // screen.
+  await sl<AuthSessionCubit>().start();
   runApp(const CurrencyApp());
 }

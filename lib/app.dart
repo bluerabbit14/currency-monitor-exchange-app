@@ -9,7 +9,6 @@ import 'features/auth/presentation/pages/login_page.dart';
 import 'features/currency/presentation/pages/base_currency_page.dart';
 import 'features/notifications/presentation/bloc/push_device_registrar.dart';
 import 'features/shell/presentation/pages/home_shell_page.dart';
-import 'features/splash/presentation/pages/splash_page.dart';
 
 class CurrencyApp extends StatefulWidget {
   const CurrencyApp({super.key, this.sessionCubit});
@@ -55,7 +54,9 @@ class _CurrencyAppState extends State<CurrencyApp> {
         ),
         home: BlocBuilder<AuthSessionCubit, AuthSessionState>(
           builder: (context, state) => switch (state) {
-            AuthSessionUnknown() => const SplashPage(),
+            // The session is restored before runApp, so this is only a blank
+            // frame if a test starts unresolved.
+            AuthSessionUnknown() => const Scaffold(),
             // A just-created account must pick a base currency first.
             AuthSessionAuthenticated(needsBaseCurrency: true) =>
               const BaseCurrencyPage(),
