@@ -29,7 +29,7 @@ class AssetDetailState extends Equatable {
   final ChartInterval interval;
   final DetailChartStatus chartStatus;
 
-  /// Every stored price of the last week, oldest first.
+  /// Every stored price of the last month, oldest first.
   final List<PricePoint> history;
   final bool favoriteBusy;
 
@@ -73,7 +73,7 @@ class AssetDetailState extends Equatable {
   ];
 }
 
-/// One asset's detail page: its price, a week of history at a chosen
+/// One asset's detail page: its price, a month of history at a chosen
 /// resolution, and the favorite flag.
 class AssetDetailCubit extends Cubit<AssetDetailState> {
   AssetDetailCubit(

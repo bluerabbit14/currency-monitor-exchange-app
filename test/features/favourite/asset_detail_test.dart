@@ -75,7 +75,7 @@ void main() {
       final c = cubit();
       await c.load();
 
-      c.selectInterval(ChartInterval.m5);
+      c.selectInterval(ChartInterval.m10);
       expect(c.state.series.map((p) => p.rate), [2, 3]);
 
       c.selectInterval(ChartInterval.h1);

@@ -6,6 +6,7 @@ import 'features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/currency/presentation/pages/base_currency_page.dart';
 import 'features/shell/presentation/pages/home_shell_page.dart';
+import 'features/splash/presentation/pages/splash_page.dart';
 
 class CurrencyApp extends StatefulWidget {
   const CurrencyApp({super.key, this.sessionCubit});
@@ -25,7 +26,7 @@ class _CurrencyAppState extends State<CurrencyApp> {
     return BlocProvider.value(
       value: widget.sessionCubit ?? sl<AuthSessionCubit>(),
       child: MaterialApp(
-        title: 'Currency',
+        title: 'MoneyEx',
         navigatorKey: _navigatorKey,
         // Signing in or out swaps `home`, but routes pushed on top of it (the
         // OTP screen, anything opened from Settings) would stay on screen.
@@ -38,7 +39,7 @@ class _CurrencyAppState extends State<CurrencyApp> {
             ),
         home: BlocBuilder<AuthSessionCubit, AuthSessionState>(
           builder: (context, state) => switch (state) {
-            AuthSessionUnknown() => const _Splash(),
+            AuthSessionUnknown() => const SplashPage(),
             // A just-created account must pick a base currency first.
             AuthSessionAuthenticated(needsBaseCurrency: true) =>
               const BaseCurrencyPage(),
@@ -49,12 +50,4 @@ class _CurrencyAppState extends State<CurrencyApp> {
       ),
     );
   }
-}
-
-class _Splash extends StatelessWidget {
-  const _Splash();
-
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: CircularProgressIndicator()));
 }

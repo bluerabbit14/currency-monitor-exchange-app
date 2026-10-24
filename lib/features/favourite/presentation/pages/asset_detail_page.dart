@@ -12,7 +12,7 @@ import '../bloc/asset_detail_cubit.dart';
 import '../widgets/asset_flag.dart';
 import '../widgets/price_chart.dart';
 
-/// One asset: its price and daily move, a week of history on a chart (green
+/// One asset: its price and daily move, a month of history on a chart (green
 /// for a rising period, red for a falling one) at a chosen resolution, and the
 /// favorite and price-alert actions.
 ///
@@ -465,7 +465,7 @@ class _Chart extends StatelessWidget {
             ),
           );
         }
-        final longSpan = state.interval.duration >= const Duration(hours: 6);
+        final longSpan = state.interval.duration >= const Duration(days: 1);
         final timeFormat = longSpan
             ? DateFormat('d MMM')
             : DateFormat('d MMM, HH:mm');

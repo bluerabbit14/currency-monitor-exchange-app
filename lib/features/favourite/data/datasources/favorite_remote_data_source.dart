@@ -125,7 +125,7 @@ class FavoriteRemoteDataSource {
   }
 
   static const _historyPageSize = 100;
-  static const _maxHistoryPages = 30;
+  static const _maxHistoryPages = 100;
 
   static AssetItem _favorite(Object? raw) => _asset(raw, idKey: 'assetId');
 

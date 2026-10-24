@@ -13,11 +13,11 @@ class PricePoint extends Equatable {
 
 /// How coarse the chart is: one point per [duration].
 enum ChartInterval {
-  m5('5m', Duration(minutes: 5)),
-  m15('15m', Duration(minutes: 15)),
+  m10('10m', Duration(minutes: 10)),
   h1('1H', Duration(hours: 1)),
-  h6('6H', Duration(hours: 6)),
-  d1('1D', Duration(days: 1));
+  d1('1D', Duration(days: 1)),
+  w1('1W', Duration(days: 7)),
+  mo1('1M', Duration(days: 30));
 
   const ChartInterval(this.label, this.duration);
 
@@ -26,7 +26,7 @@ enum ChartInterval {
 }
 
 /// The chart always covers this long.
-const chartWindow = Duration(days: 7);
+const chartWindow = Duration(days: 30);
 
 /// Keeps the last observation of every [interval]-long bucket, oldest first.
 /// [points] may come in any order.
