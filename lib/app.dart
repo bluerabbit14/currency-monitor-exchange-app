@@ -7,6 +7,7 @@ import 'core/di/injection.dart';
 import 'features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/currency/presentation/pages/base_currency_page.dart';
+import 'features/notifications/presentation/bloc/notification_navigator.dart';
 import 'features/notifications/presentation/bloc/push_device_registrar.dart';
 import 'features/shell/presentation/pages/home_shell_page.dart';
 
@@ -21,12 +22,25 @@ class CurrencyApp extends StatefulWidget {
 }
 
 class _CurrencyAppState extends State<CurrencyApp> {
-  final _navigatorKey = GlobalKey<NavigatorState>();
+  late final _session = widget.sessionCubit ?? sl<AuthSessionCubit>();
+  final _notifications = sl<NotificationNavigator>();
+
+  GlobalKey<NavigatorState> get _navigatorKey => _notifications.navigatorKey;
+
+  @override
+  void initState() {
+    super.initState();
+    // Needs the navigator, so wait for the first frame. Taps that launched the
+    // app, or arrive later, are routed from there.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => unawaited(_notifications.start(_session)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
-      value: widget.sessionCubit ?? sl<AuthSessionCubit>(),
+      value: _session,
       child: MaterialApp(
         title: 'MoneyEx',
         navigatorKey: _navigatorKey,

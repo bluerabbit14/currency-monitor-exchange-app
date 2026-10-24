@@ -48,6 +48,7 @@ import '../../features/notifications/data/datasources/notification_remote_data_s
 import '../../features/notifications/data/repositories/notification_repository_impl.dart';
 import '../../features/notifications/domain/repositories/notification_repository.dart';
 import '../../features/notifications/domain/usecases/notification_usecases.dart';
+import '../../features/notifications/presentation/bloc/notification_navigator.dart';
 import '../../features/notifications/presentation/bloc/notifications_cubit.dart';
 import '../../features/notifications/presentation/bloc/push_device_registrar.dart';
 import '../../features/settings/data/datasources/start_screen_local_data_source.dart';
@@ -60,6 +61,7 @@ import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/domain/usecases/get_profile.dart';
 import '../../features/profile/presentation/bloc/profile_cubit.dart';
 import '../network/api_client.dart';
+import '../push/push_message_source.dart';
 import '../push/push_token_provider.dart';
 
 final sl = GetIt.instance;
@@ -123,6 +125,8 @@ Future<void> init() async {
     () => const FirebasePushTokenProvider(),
   );
   sl.registerLazySingleton(() => PushDeviceRegistrar(sl(), sl()));
+  sl.registerLazySingleton<PushMessageSource>(FirebasePushMessageSource.new);
+  sl.registerLazySingleton(() => NotificationNavigator(sl(), sl()));
 
   // Feedback
   sl.registerFactory(() => FeedbackCubit(sl()));

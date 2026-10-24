@@ -16,16 +16,27 @@ import '../widgets/alert_editor_sheet.dart';
 ///
 /// [baseCurrency] is the user's base currency; targets are priced in it. It can
 /// be null (not chosen yet), in which case alerts cannot be created.
+///
+/// [highlightAlertId] is the alert a push notification pointed at: it is
+/// highlighted, or a message says it no longer exists.
 class PriceAlertsPage extends StatelessWidget {
-  const PriceAlertsPage({super.key, required this.baseCurrency});
+  const PriceAlertsPage({
+    super.key,
+    required this.baseCurrency,
+    this.highlightAlertId,
+  });
 
   final Currency? baseCurrency;
+  final String? highlightAlertId;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<AlertsCubit>()..load(),
-      child: _AlertsView(baseCurrency: baseCurrency),
+      child: _AlertsView(
+        baseCurrency: baseCurrency,
+        highlightAlertId: highlightAlertId,
+      ),
     );
   }
 }
@@ -35,9 +46,20 @@ const _muted = Color(0xFF8A8A93);
 const _blue = Color(0xFF1E88FF);
 
 class _AlertsView extends StatelessWidget {
-  const _AlertsView({required this.baseCurrency});
+  const _AlertsView({required this.baseCurrency, this.highlightAlertId});
 
   final Currency? baseCurrency;
+  final String? highlightAlertId;
+
+  void _noteMissingAlert(BuildContext context, AlertsState state) {
+    final id = highlightAlertId;
+    if (id == null || state.alerts.any((a) => a.id == id)) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('This alert no longer exists')),
+      );
+  }
 
   Future<void> _add(BuildContext context) async {
     final quote = baseCurrency?.code;
@@ -108,7 +130,11 @@ class _AlertsView extends StatelessWidget {
     return Scaffold(
       backgroundColor: _background,
       body: SafeArea(
-        child: BlocBuilder<AlertsCubit, AlertsState>(
+        child: BlocConsumer<AlertsCubit, AlertsState>(
+          listenWhen: (previous, current) =>
+              previous.status == AlertsStatus.loading &&
+              current.status == AlertsStatus.ready,
+          listener: _noteMissingAlert,
           builder: (context, state) {
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -169,6 +195,7 @@ class _AlertsView extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _AlertCard(
                   alert: alert,
+                  highlighted: alert.id == highlightAlertId,
                   onTap: () => _edit(context, alert),
                 ),
               ),
@@ -236,10 +263,17 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _AlertCard extends StatelessWidget {
-  const _AlertCard({required this.alert, required this.onTap});
+  const _AlertCard({
+    required this.alert,
+    required this.onTap,
+    this.highlighted = false,
+  });
 
   final PriceAlert alert;
   final VoidCallback onTap;
+
+  /// The alert a push notification pointed at.
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -247,7 +281,12 @@ class _AlertCard extends StatelessWidget {
     final color = above ? const Color(0xFF1FA463) : const Color(0xFFE5383B);
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: highlighted
+            ? const BorderSide(color: _blue, width: 2)
+            : BorderSide.none,
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
