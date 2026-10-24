@@ -39,6 +39,11 @@ import '../../features/favourite/domain/repositories/favorite_repository.dart';
 import '../../features/favourite/domain/usecases/favorite_usecases.dart';
 import '../../features/favourite/presentation/bloc/asset_picker_cubit.dart';
 import '../../features/favourite/presentation/bloc/favorites_cubit.dart';
+import '../../features/feedback/data/datasources/feedback_remote_data_source.dart';
+import '../../features/feedback/data/repositories/feedback_repository_impl.dart';
+import '../../features/feedback/domain/repositories/feedback_repository.dart';
+import '../../features/feedback/domain/usecases/submit_feedback.dart';
+import '../../features/feedback/presentation/bloc/feedback_cubit.dart';
 import '../../features/notifications/data/datasources/notification_remote_data_source.dart';
 import '../../features/notifications/data/repositories/notification_repository_impl.dart';
 import '../../features/notifications/domain/repositories/notification_repository.dart';
@@ -118,6 +123,18 @@ Future<void> init() async {
     () => const FirebasePushTokenProvider(),
   );
   sl.registerLazySingleton(() => PushDeviceRegistrar(sl(), sl()));
+
+  // Feedback
+  sl.registerFactory(() => FeedbackCubit(sl()));
+  sl.registerLazySingleton(() => SubmitFeedback(sl()));
+  sl.registerLazySingleton<FeedbackRepository>(
+    () => FeedbackRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton(
+    () => FeedbackRemoteDataSource(
+      sl<ApiClient>(instanceName: authenticatedApiClient),
+    ),
+  );
 
   // Settings (start screen, stored on the device)
   sl.registerLazySingleton(() => StartScreenCubit(sl()));

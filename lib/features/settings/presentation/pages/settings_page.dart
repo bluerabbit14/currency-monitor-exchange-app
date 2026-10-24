@@ -5,6 +5,7 @@ import '../../../../core/di/injection.dart';
 import '../../../auth/presentation/bloc/auth_session_cubit.dart';
 import '../../../alerts/presentation/pages/price_alerts_page.dart';
 import '../../../currency/presentation/widgets/currency_picker_sheet.dart';
+import '../../../feedback/presentation/widgets/feedback_sheet.dart';
 import '../../../notifications/presentation/widgets/notifications_sheet.dart';
 import '../../../profile/presentation/bloc/profile_cubit.dart';
 import '../../../profile/presentation/widgets/profile_header.dart';
@@ -80,14 +81,17 @@ class SettingsPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-            const _SettingsCard(
+            _SettingsCard(
               children: [
-                _SettingsRow(icon: Icons.feedback_outlined, title: 'Feedback'),
-                _SettingsRow(
+                const _FeedbackRow(),
+                const _SettingsRow(
                   icon: Icons.star_border_rounded,
                   title: 'Rate app',
                 ),
-                _SettingsRow(icon: Icons.ios_share_rounded, title: 'Share app'),
+                const _SettingsRow(
+                  icon: Icons.ios_share_rounded,
+                  title: 'Share app',
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -151,6 +155,30 @@ class _NotificationsRow extends StatelessWidget {
             }
           },
         );
+      },
+    );
+  }
+}
+
+/// Opens the feedback sheet and confirms with a snackbar once it was sent.
+class _FeedbackRow extends StatelessWidget {
+  const _FeedbackRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsRow(
+      icon: Icons.feedback_outlined,
+      title: 'Feedback',
+      onTap: () async {
+        final messenger = ScaffoldMessenger.of(context);
+        final sent = await showFeedbackSheet(context);
+        if (sent) {
+          messenger
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(content: Text('Thanks for your feedback.')),
+            );
+        }
       },
     );
   }
