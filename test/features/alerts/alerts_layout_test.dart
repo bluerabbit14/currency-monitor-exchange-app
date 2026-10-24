@@ -9,6 +9,8 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_converter_repository.dart';
+
 import '../../helpers/fake_alerts_notifications.dart';
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_currency_repository.dart';
@@ -30,6 +32,7 @@ void main() {
       ) async {
         await sl.reset();
         await init();
+        await useFakeConverterRepository();
         final profile = await useFakeProfileRepository();
         final currencies = await useFakeCurrencyRepository();
         await useFakeNotificationRepository();

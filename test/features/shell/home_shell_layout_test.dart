@@ -5,6 +5,8 @@ import 'package:currency/features/shell/presentation/widgets/floating_nav_bar.da
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_converter_repository.dart';
+
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_currency_repository.dart';
 import '../../helpers/fake_favorite_repository.dart';
@@ -14,6 +16,7 @@ void main() {
   setUp(() async {
     await sl.reset();
     await init();
+    await useFakeConverterRepository();
     await useFakeProfileRepository();
     await useFakeCurrencyRepository();
     await useFakeFavoriteRepository();

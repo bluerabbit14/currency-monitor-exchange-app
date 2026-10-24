@@ -80,3 +80,19 @@ const _symbols = {
   'VND': '₫',
   'THB': '฿',
 };
+
+/// A plain amount with thousands separators and no currency mark, as the
+/// Converter rows show it (`1,234.5`, `0.038306`, `0`).
+String formatAmount(double value) {
+  final magnitude = value.abs();
+  final maxDecimals = magnitude >= 1000
+      ? 2
+      : magnitude >= 1
+      ? 4
+      : 6;
+  final number = NumberFormat.decimalPattern('en_US')
+    ..minimumFractionDigits = 0
+    ..maximumFractionDigits = maxDecimals;
+  final text = number.format(value);
+  return text == '-0' ? '0' : text;
+}

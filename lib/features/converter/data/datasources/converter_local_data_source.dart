@@ -1,36 +1,70 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../favourite/domain/entities/asset_item.dart';
 import '../../domain/entities/conversion.dart';
 
-class ConversionException implements Exception {
-  const ConversionException(this.message);
-
-  final String message;
-}
-
+/// Stores the Converter rows in local preferences on the device (never sent to
+/// the backend).
 class ConverterLocalDataSource {
-  /// Units of each currency equal to 1 USD.
-  static const rates = <String, double>{
-    'USD': 1,
-    'EUR': 0.92,
-    'GBP': 0.78,
-    'INR': 83,
-  };
+  const ConverterLocalDataSource();
 
-  Conversion convert({
-    required double amount,
-    required String from,
-    required String to,
-  }) {
-    final fromRate = rates[from];
-    final toRate = rates[to];
-    if (fromRate == null || toRate == null) {
-      throw const ConversionException('Unsupported currency');
+  static const _key = 'converter_session_v1';
+
+  Future<ConverterSession?> read() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_key);
+      if (raw == null) return null;
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      final assets = <AssetItem>[];
+      for (final item in json['assets'] as List) {
+        final kind = AssetKind.fromApi(item['kind']);
+        if (kind == null) continue;
+        assets.add(
+          AssetItem(
+            id: item['id'] as String,
+            symbol: item['symbol'] as String,
+            name: item['name'] as String,
+            kind: kind,
+          ),
+        );
+      }
+      return ConverterSession(
+        assets: assets,
+        activeSymbol: json['active'] as String?,
+        expression: json['expression'] as String? ?? '',
+      );
+    } catch (_) {
+      // Unreadable (older, damaged or unavailable) data counts as a first
+      // launch.
+      return null;
     }
+  }
 
-    return Conversion(
-      amount: amount,
-      from: from,
-      to: to,
-      result: amount * (toRate / fromRate),
-    );
+  /// Best effort: the Converter works without being remembered.
+  Future<void> write(ConverterSession session) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _key,
+        jsonEncode({
+          'assets': [
+            for (final a in session.assets)
+              {
+                'id': a.id,
+                'symbol': a.symbol,
+                'name': a.name,
+                'kind': a.kind.name.toUpperCase(),
+              },
+          ],
+          'active': session.activeSymbol,
+          'expression': session.expression,
+        }),
+      );
+    } catch (_) {
+      // Not remembering is better than failing a key press.
+    }
   }
 }

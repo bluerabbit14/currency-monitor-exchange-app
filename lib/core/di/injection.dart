@@ -19,10 +19,12 @@ import '../../features/auth/presentation/bloc/auth_session_cubit.dart';
 import '../../features/auth/presentation/bloc/login_cubit.dart';
 import '../../features/auth/presentation/bloc/otp_verify_cubit.dart';
 import '../../features/converter/data/datasources/converter_local_data_source.dart';
+import '../../features/converter/data/datasources/converter_remote_data_source.dart';
 import '../../features/converter/data/repositories/converter_repository_impl.dart';
 import '../../features/converter/domain/repositories/converter_repository.dart';
-import '../../features/converter/domain/usecases/convert_currency.dart';
-import '../../features/converter/presentation/bloc/converter_bloc.dart';
+import '../../features/converter/presentation/bloc/converter_cubit.dart';
+import '../../features/converter/presentation/bloc/converter_picker_cubit.dart';
+import '../../features/favourite/domain/entities/asset_item.dart';
 import '../../features/currency/data/datasources/currency_remote_data_source.dart';
 import '../../features/currency/data/repositories/currency_repository_impl.dart';
 import '../../features/currency/domain/repositories/currency_repository.dart';
@@ -169,10 +171,17 @@ Future<void> init() async {
   );
 
   // Converter
-  sl.registerFactory(() => ConverterBloc(convertCurrency: sl()));
-  sl.registerLazySingleton(() => ConvertCurrency(sl()));
-  sl.registerLazySingleton<ConverterRepository>(
-    () => ConverterRepositoryImpl(sl()),
+  sl.registerFactory(() => ConverterCubit(sl(), sl(), sl()));
+  sl.registerFactoryParam<ConverterPickerCubit, List<AssetItem>, void>(
+    (current, _) => ConverterPickerCubit(sl(), current),
   );
-  sl.registerLazySingleton(ConverterLocalDataSource.new);
+  sl.registerLazySingleton<ConverterRepository>(
+    () => ConverterRepositoryImpl(sl(), sl()),
+  );
+  sl.registerLazySingleton(
+    () => ConverterRemoteDataSource(
+      sl<ApiClient>(instanceName: authenticatedApiClient),
+    ),
+  );
+  sl.registerLazySingleton(() => const ConverterLocalDataSource());
 }

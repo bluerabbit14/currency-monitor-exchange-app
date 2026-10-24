@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../../helpers/fake_converter_repository.dart';
+
 import 'package:currency/app.dart';
 import 'package:currency/core/di/injection.dart';
 import 'package:currency/features/auth/presentation/bloc/auth_session_cubit.dart';
@@ -93,6 +95,7 @@ void main() {
     );
     await sl.reset();
     await init();
+    await useFakeConverterRepository();
     await useFakeProfileRepository();
     final currencies = await useFakeCurrencyRepository();
     final session = AuthSessionCubit(FakeAuthRepository());

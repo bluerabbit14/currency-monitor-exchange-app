@@ -9,6 +9,8 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_converter_repository.dart';
+
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_currency_repository.dart';
 import '../../helpers/fake_favorite_repository.dart';
@@ -28,6 +30,7 @@ void main() {
       testWidgets('favorites: ${entry.key}, text x$textScale', (tester) async {
         await sl.reset();
         await init();
+        await useFakeConverterRepository();
         final profile = await useFakeProfileRepository();
         await useFakeCurrencyRepository();
         final favorites = await useFakeFavoriteRepository();

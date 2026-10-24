@@ -11,6 +11,8 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_converter_repository.dart';
+
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_currency_repository.dart';
 import '../../helpers/fake_profile_repository.dart';
@@ -26,6 +28,7 @@ void main() {
   setUp(() async {
     await sl.reset();
     await init();
+    await useFakeConverterRepository();
     profile = await useFakeProfileRepository();
     currencies = await useFakeCurrencyRepository();
     currencies.list = const Right([usd, eur, inr, aed, rub]);

@@ -5,6 +5,8 @@ import 'package:currency/features/auth/presentation/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_converter_repository.dart';
+
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_currency_repository.dart';
 import '../../helpers/fake_profile_repository.dart';
@@ -21,6 +23,7 @@ void main() {
     );
     await sl.reset();
     await init();
+    await useFakeConverterRepository();
     await useFakeProfileRepository();
     await useFakeCurrencyRepository();
     auth = FakeAuthRepository();

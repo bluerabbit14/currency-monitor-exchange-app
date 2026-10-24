@@ -4,6 +4,8 @@ import 'package:currency/features/auth/presentation/bloc/auth_session_cubit.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/fake_converter_repository.dart';
+
 import '../helpers/fake_auth_repository.dart';
 import '../helpers/fake_currency_repository.dart';
 import '../helpers/fake_favorite_repository.dart';
@@ -25,6 +27,7 @@ void main() {
       testWidgets('new-user currency picker: $label', (tester) async {
         await sl.reset();
         await init();
+        await useFakeConverterRepository();
         await useFakeProfileRepository();
         await useFakeCurrencyRepository();
         await useFakeFavoriteRepository();
@@ -60,6 +63,7 @@ void main() {
       testWidgets('home + tab bar: $label', (tester) async {
         await sl.reset();
         await init();
+        await useFakeConverterRepository();
         await useFakeProfileRepository();
         await useFakeCurrencyRepository();
         await useFakeFavoriteRepository();

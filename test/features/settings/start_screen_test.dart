@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../helpers/fake_converter_repository.dart';
+
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_currency_repository.dart';
 import '../../helpers/fake_favorite_repository.dart';
@@ -63,6 +65,7 @@ void main() {
       );
       await sl.reset();
       await init();
+      await useFakeConverterRepository();
       await useFakeProfileRepository();
       await useFakeCurrencyRepository();
       await useFakeFavoriteRepository();

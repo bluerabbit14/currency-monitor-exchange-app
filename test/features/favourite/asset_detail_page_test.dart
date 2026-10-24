@@ -6,6 +6,8 @@ import 'package:currency/features/favourite/presentation/pages/asset_detail_page
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_converter_repository.dart';
+
 import '../../helpers/fake_favorite_repository.dart';
 
 void main() {
@@ -14,6 +16,7 @@ void main() {
   setUp(() async {
     await sl.reset();
     await init();
+    await useFakeConverterRepository();
     repo = await useFakeFavoriteRepository();
     repo.assets = [eurAsset];
     repo.quotes = {'EUR': const AssetQuote(rate: 4.2, change: 0.05)};

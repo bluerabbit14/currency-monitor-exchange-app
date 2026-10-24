@@ -2,8 +2,9 @@ import 'package:currency/app.dart';
 import 'package:currency/core/di/injection.dart';
 import 'package:currency/features/auth/presentation/bloc/auth_session_cubit.dart';
 import 'package:currency/features/shell/presentation/widgets/floating_nav_bar.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'helpers/fake_converter_repository.dart';
 
 import 'helpers/fake_auth_repository.dart';
 import 'helpers/fake_currency_repository.dart';
@@ -14,6 +15,7 @@ void main() {
   testWidgets('shows the four home tabs', (WidgetTester tester) async {
     await sl.reset();
     await init();
+    await useFakeConverterRepository();
     final profile = await useFakeProfileRepository();
     await useFakeCurrencyRepository();
     await useFakeFavoriteRepository();
@@ -31,9 +33,9 @@ void main() {
     expect(find.text('Favorites'), findsWidgets);
     expect(find.text('Settings'), findsWidgets);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Convert'));
+    // The Converter starts empty until currencies are added.
     await tester.pumpAndSettle();
-    expect(find.text('1.00 USD = 0.92 EUR'), findsOneWidget);
+    expect(find.text('No currencies yet'), findsOneWidget);
 
     final navigationBar = find.byType(FloatingNavBar);
     await tester.tap(
