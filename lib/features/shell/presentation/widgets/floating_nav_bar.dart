@@ -29,6 +29,8 @@ class FloatingNavBar extends StatelessWidget {
   static const _selectedColor = Color(0xFF2F6FED);
   static const _idleColor = Color(0xFF111111);
   static const _highlight = Color(0xFFE6E6EB);
+  static const _slideDuration = Duration(milliseconds: 320);
+  static const _slideCurve = Curves.easeOutCubic;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +38,7 @@ class FloatingNavBar extends StatelessWidget {
       top: false,
       minimum: const EdgeInsets.only(bottom: 8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 28),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
@@ -51,16 +53,42 @@ class FloatingNavBar extends StatelessWidget {
               ),
             ],
           ),
-          child: Row(
+          child: Stack(
             children: [
-              for (var i = 0; i < items.length; i++)
-                Expanded(
-                  child: _NavButton(
-                    item: items[i],
-                    selected: i == currentIndex,
-                    onTap: () => onSelected(i),
+              Positioned.fill(
+                child: AnimatedAlign(
+                  duration: _slideDuration,
+                  curve: _slideCurve,
+                  alignment: Alignment(
+                    items.length > 1
+                        ? -1 + 2 * currentIndex / (items.length - 1)
+                        : 0,
+                    0,
+                  ),
+                  child: FractionallySizedBox(
+                    widthFactor: 1 / items.length,
+                    heightFactor: 1,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: _highlight,
+                        borderRadius: BorderRadius.circular(26),
+                      ),
+                    ),
                   ),
                 ),
+              ),
+              Row(
+                children: [
+                  for (var i = 0; i < items.length; i++)
+                    Expanded(
+                      child: _NavButton(
+                        item: items[i],
+                        selected: i == currentIndex,
+                        onTap: () => onSelected(i),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
         ),
@@ -82,7 +110,7 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected
+    final target = selected
         ? FloatingNavBar._selectedColor
         : FloatingNavBar._idleColor;
     return Semantics(
@@ -92,33 +120,33 @@ class _NavButton extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 7),
-          decoration: BoxDecoration(
-            color: selected ? FloatingNavBar._highlight : Colors.transparent,
-            borderRadius: BorderRadius.circular(26),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                selected ? item.selectedIcon : item.icon,
-                color: color,
-                size: 24,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                item.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+        child: TweenAnimationBuilder<Color?>(
+          duration: FloatingNavBar._slideDuration,
+          curve: FloatingNavBar._slideCurve,
+          tween: ColorTween(end: target),
+          builder: (context, color, _) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 7),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  selected ? item.selectedIcon : item.icon,
                   color: color,
+                  size: 24,
                 ),
-              ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

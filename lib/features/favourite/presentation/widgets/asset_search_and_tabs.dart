@@ -62,39 +62,67 @@ class AssetKindTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    const kinds = AssetKind.values;
+    const duration = Duration(milliseconds: 320);
+    const curve = Curves.easeOutCubic;
+    final index = kinds.indexOf(selected);
+    return Stack(
       children: [
-        for (final kind in AssetKind.values)
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => onSelected(kind),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                height: 44,
-                alignment: Alignment.center,
-                margin: const EdgeInsets.only(right: 6),
-                decoration: BoxDecoration(
-                  color: kind == selected ? Colors.black : Colors.transparent,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      assetKindLabel(kind),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: kind == selected ? Colors.white : _muted,
-                      ),
-                    ),
+        Positioned.fill(
+          child: AnimatedAlign(
+            duration: duration,
+            curve: curve,
+            alignment: Alignment(
+              kinds.length > 1 ? -1 + 2 * index / (kinds.length - 1) : 0,
+              0,
+            ),
+            child: FractionallySizedBox(
+              widthFactor: 1 / kinds.length,
+              heightFactor: 1,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(22),
                   ),
                 ),
               ),
             ),
           ),
+        ),
+        Row(
+          children: [
+            for (final kind in kinds)
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onSelected(kind),
+                  child: Container(
+                    height: 44,
+                    alignment: Alignment.center,
+                    margin: const EdgeInsets.only(right: 6),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: AnimatedDefaultTextStyle(
+                          duration: duration,
+                          curve: curve,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: kind == selected ? Colors.white : _muted,
+                          ),
+                          child: Text(assetKindLabel(kind)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }
