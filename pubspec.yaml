@@ -69,8 +69,10 @@ dev_dependencies:
 # flash before Flutter draws it.
 flutter_native_splash:
   color: "#001640"
+  image: assets/images/moneyEx.jpg
   android_12:
     color: "#001640"
+    image: assets/images/moneyEx.jpg
 
 flutter_launcher_icons:
   image_path: assets/images/moneyEx.jpg

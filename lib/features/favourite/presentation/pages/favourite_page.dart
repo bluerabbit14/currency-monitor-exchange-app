@@ -173,10 +173,13 @@ class _FavoritesView extends StatelessWidget {
                   Expanded(
                     child: RefreshIndicator(
                       onRefresh: () => cubit.load(refresh: true),
-                      child: ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
-                        children: _content(context, state),
+                      // Opening one row's actions closes any other open row.
+                      child: SlidableAutoCloseBehavior(
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                          children: _content(context, state),
+                        ),
                       ),
                     ),
                   ),
