@@ -336,7 +336,7 @@ class _Header extends StatelessWidget {
       children: [
         const Expanded(
           child: Padding(
-            padding: EdgeInsets.only(top: 36),
+            padding: EdgeInsets.only(top: 4),
             child: Text(
               'Favorites',
               maxLines: 1,

@@ -79,7 +79,7 @@ class _BrowseViewState extends State<_BrowseView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Padding(
-                          padding: EdgeInsets.only(top: 36, bottom: 16),
+                          padding: EdgeInsets.only(top: 4, bottom: 16),
                           child: Text(
                             'Browse',
                             maxLines: 1,
