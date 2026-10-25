@@ -81,6 +81,29 @@ const _symbols = {
   'THB': '฿',
 };
 
+/// [value] as the Converter rows show it: grouped digits with the currency mark
+/// after the number (`1,234.5 $`, `3.67 AED`).
+String formatAmountWithSymbol(double value, String currencyCode) =>
+    '${formatAmount(value)} ${currencyMark(currencyCode)}';
+
+/// The mark written after an amount: a well-known symbol, else the ISO code.
+String currencyMark(String currencyCode) {
+  final code = currencyCode.toUpperCase();
+  return _symbols[code] ?? code;
+}
+
+/// Adds thousands separators to every whole number in a typed expression
+/// (`1234+5678.5` becomes `1,234+5,678.5`); decimals and operators stay as typed.
+String groupExpression(String expression) => expression.replaceAllMapped(
+  RegExp(r'(\d+)(\.\d*)?'),
+  (m) =>
+      m[1]!.replaceAllMapped(
+        RegExp(r'\B(?=(\d{3})+(?!\d))'),
+        (_) => ',',
+      ) +
+      (m[2] ?? ''),
+);
+
 /// A plain amount with thousands separators and no currency mark, as the
 /// Converter rows show it (`1,234.5`, `0.038306`, `0`).
 String formatAmount(double value) {

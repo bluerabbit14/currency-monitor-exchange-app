@@ -96,7 +96,7 @@ class ConverterRow extends StatelessWidget {
                               value,
                               maxLines: 1,
                               style: const TextStyle(
-                                fontSize: 24,
+                                fontSize: 20,
                                 fontWeight: FontWeight.w500,
                                 color: Color(0xFF3A3A3C),
                               ),

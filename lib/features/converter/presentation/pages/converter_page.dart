@@ -148,11 +148,14 @@ class _ConverterView extends StatelessWidget {
   /// amount, "-" when their rate is not known, and nothing while it loads.
   static String _valueText(ConverterState state, String symbol) {
     if (symbol == state.activeSymbol) {
-      return state.expression.isEmpty ? '0' : state.expression;
+      final typed = state.expression.isEmpty
+          ? '0'
+          : groupExpression(state.expression);
+      return '$typed ${currencyMark(symbol)}';
     }
     if (state.failed.contains(symbol)) return '-';
     final value = state.convertedValue(symbol);
-    return value == null ? '...' : formatAmount(value);
+    return value == null ? '...' : formatAmountWithSymbol(value, symbol);
   }
 }
 

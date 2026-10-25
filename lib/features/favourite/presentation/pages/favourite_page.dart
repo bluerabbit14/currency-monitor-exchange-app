@@ -83,7 +83,7 @@ class _FavoritesView extends StatelessWidget {
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: _down),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete'),
+            child: const Text('Remove'),
           ),
         ],
       ),
@@ -231,18 +231,18 @@ class _FavoritesView extends StatelessWidget {
               // tapped.
               endActionPane: ActionPane(
                 motion: const DrawerMotion(),
-                extentRatio: 0.5,
+                extentRatio: 0.45,
                 children: [
                   CustomSlidableAction(
                     onPressed: (_) => _alert(context, state.rows[i], state),
                     backgroundColor: const Color.fromRGBO(0, 0, 0, 0),
                     padding: const EdgeInsets.all(2),
                     child: Container(
-                      width: 80,
-                      height: 80,
+                      width: 70,
+                      height: 70,
                       decoration: BoxDecoration(
                         color: _blue,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(15),
                         boxShadow: [
                           BoxShadow(
                             color: _blue.withValues(alpha: 0.20),
@@ -277,11 +277,11 @@ class _FavoritesView extends StatelessWidget {
                     backgroundColor: const Color.fromRGBO(0, 0, 0, 0),
                     padding: const EdgeInsets.all(2),
                     child: Container(
-                      width: 80,
-                      height: 80,
+                      width: 70,
+                      height: 70,
                       decoration: BoxDecoration(
                         color: _down,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(15),
                         boxShadow: [
                           BoxShadow(
                             color: _down.withValues(alpha: 0.20),
@@ -300,7 +300,7 @@ class _FavoritesView extends StatelessWidget {
                           ),
                           SizedBox(height: 5),
                           Text(
-                            'Delete',
+                            'Remove',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 12,
