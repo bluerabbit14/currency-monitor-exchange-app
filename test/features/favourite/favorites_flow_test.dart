@@ -115,14 +115,14 @@ void main() {
       expect(find.text('Indian Rupee'), findsOneWidget);
       expect(find.text('United Arab Emirates Dirham'), findsOneWidget);
 
-      expect(find.text('AED 0.038306'), findsOneWidget);
-      expect(find.text('+AED 0.000018'), findsOneWidget);
-      expect(find.text('AED 3.67'), findsOneWidget);
-      expect(find.text('+AED 0.0002'), findsOneWidget);
-      expect(find.text('AED 4.22'), findsOneWidget);
-      expect(find.text('+AED 0.004105'), findsOneWidget);
-      expect(find.text('AED 1.00'), findsOneWidget);
-      expect(find.text('AED 0.00'), findsOneWidget);
+      expect(find.text('0.038306 AED'), findsOneWidget);
+      expect(find.text('+0.000018 AED'), findsOneWidget);
+      expect(find.text('3.67 AED'), findsOneWidget);
+      expect(find.text('+0.0002 AED'), findsOneWidget);
+      expect(find.text('4.22 AED'), findsOneWidget);
+      expect(find.text('+0.004105 AED'), findsOneWidget);
+      expect(find.text('1.00 AED'), findsOneWidget);
+      expect(find.text('0.00 AED'), findsOneWidget);
     });
 
     testWidgets('prices are requested in the base currency', (tester) async {
@@ -138,7 +138,7 @@ void main() {
       await openFavorites(tester);
 
       expect(favorites.quoteRequests, contains('INR/USD'));
-      expect(find.text(r'$3.67'), findsOneWidget);
+      expect(find.text('3.67 \$'), findsOneWidget);
     });
 
     testWidgets('if the profile cannot be loaded, prices fall back to USD', (
@@ -157,12 +157,12 @@ void main() {
 
       Color colorOf(String text) =>
           tester.widget<Text>(find.text(text)).style!.color!;
-      expect(find.text('-AED 0.000181'), findsOneWidget);
+      expect(find.text('-0.000181 AED'), findsOneWidget);
       expect(
-        colorOf('-AED 0.000181').toARGB32(),
-        isNot(colorOf('+AED 0.0002').toARGB32()),
+        colorOf('-0.000181 AED').toARGB32(),
+        isNot(colorOf('+0.0002 AED').toARGB32()),
       );
-      expect(colorOf('+AED 0.0002'), colorOf('+AED 0.0002'));
+      expect(colorOf('+0.0002 AED'), colorOf('+0.0002 AED'));
     });
 
     testWidgets('crypto and commodities get a badge instead of a flag', (
@@ -173,9 +173,9 @@ void main() {
 
       expect(find.text('Bitcoin'), findsOneWidget);
       expect(find.text('Gold'), findsOneWidget);
-      expect(find.text('AED 250,000.50'), findsOneWidget);
-      expect(find.text('+AED 1,200.25'), findsOneWidget);
-      expect(find.text('-AED 15.00'), findsOneWidget);
+      expect(find.text('250,000.50 AED'), findsOneWidget);
+      expect(find.text('+1,200.25 AED'), findsOneWidget);
+      expect(find.text('-15.00 AED'), findsOneWidget);
     });
 
     testWidgets(
@@ -185,7 +185,7 @@ void main() {
         await openFavorites(tester);
 
         expect(find.text('—'), findsOneWidget);
-        expect(find.text('AED 3.67'), findsOneWidget);
+        expect(find.text('3.67 AED'), findsOneWidget);
       },
     );
 
@@ -211,14 +211,14 @@ void main() {
       expect(find.text('INR'), findsOneWidget);
       expect(find.text('USD'), findsOneWidget);
       expect(find.text('···'), findsNWidgets(2));
-      expect(find.text('AED 3.67'), findsNothing);
+      expect(find.text('3.67 AED'), findsNothing);
 
       gated.gate.complete();
       await tester.pumpAndSettle();
 
       expect(find.text('···'), findsNothing);
-      expect(find.text('AED 3.67'), findsOneWidget);
-      expect(find.text('AED 0.038306'), findsOneWidget);
+      expect(find.text('3.67 AED'), findsOneWidget);
+      expect(find.text('0.038306 AED'), findsOneWidget);
     });
 
     testWidgets('empty state offers to add a favorite', (tester) async {
@@ -423,7 +423,7 @@ void main() {
 
       expect(find.byType(BottomSheet), findsNothing);
       expect(find.text('Bitcoin'), findsOneWidget);
-      expect(find.text('AED 250,000.50'), findsOneWidget);
+      expect(find.text('250,000.50 AED'), findsOneWidget);
       // Newest first.
       expect(
         tester.getTopLeft(find.text('Bitcoin')).dy,
@@ -505,12 +505,12 @@ void main() {
 
     testWidgets('sliding a row only reveals Alert and Delete', (tester) async {
       await openFavorites(tester);
-      expect(find.text('Delete'), findsNothing);
+      expect(find.text('Remove'), findsNothing);
 
       await slide(tester, 'EUR');
 
       expect(find.text('Alert'), findsOneWidget);
-      expect(find.text('Delete'), findsOneWidget);
+      expect(find.text('Remove'), findsOneWidget);
       expect(favorites.removed, isEmpty);
       expect(find.text('EUR'), findsOneWidget);
     });
@@ -521,7 +521,7 @@ void main() {
       await openFavorites(tester);
       await slide(tester, 'EUR');
 
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
       expect(find.text('Remove from favorites?'), findsOneWidget);
       expect(favorites.removed, isEmpty);
@@ -539,9 +539,9 @@ void main() {
       await openFavorites(tester);
       await slide(tester, 'EUR');
 
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
       await tester.pumpAndSettle();
 
       expect(favorites.removed, ['id-EUR']);
@@ -554,9 +554,9 @@ void main() {
       await openFavorites(tester);
       await slide(tester, 'EUR');
 
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
       await tester.pumpAndSettle();
 
       expect(favorites.removed, ['id-EUR']);
@@ -574,9 +574,9 @@ void main() {
       await openFavorites(tester);
       await slide(tester, 'USD');
 
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
       await tester.pumpAndSettle();
 
       expect(find.text('No favorites yet'), findsOneWidget);

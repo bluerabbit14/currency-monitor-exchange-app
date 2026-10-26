@@ -1,9 +1,8 @@
-import 'dart:ui' show PathMetric;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/format/number_format.dart';
 import '../../../currency/domain/entities/currency.dart';
 import '../../../favourite/domain/entities/asset_item.dart';
 import '../../../favourite/domain/repositories/favorite_repository.dart';
@@ -130,27 +129,56 @@ class _AlertsView extends StatelessWidget {
     return Scaffold(
       backgroundColor: _background,
       body: SafeArea(
-        child: BlocConsumer<AlertsCubit, AlertsState>(
-          listenWhen: (previous, current) =>
-              previous.status == AlertsStatus.loading &&
-              current.status == AlertsStatus.ready,
-          listener: _noteMissingAlert,
-          builder: (context, state) {
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-              children: [
-                const _BackButton(),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(2, 16, 2, 24),
-                  child: Text(
-                    'Price Alerts',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-                  ),
+        child: Stack(
+          children: [
+            BlocConsumer<AlertsCubit, AlertsState>(
+              listenWhen: (previous, current) =>
+                  previous.status == AlertsStatus.loading &&
+                  current.status == AlertsStatus.ready,
+              listener: _noteMissingAlert,
+              builder: (context, state) {
+                return ListView(
+                  // Room at the bottom so the add button never covers a card.
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+                  children: [
+                    const _BackButton(),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(2, 16, 2, 24),
+                      child: Text(
+                        'Price Alerts',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    ..._content(context, state),
+                  ],
+                );
+              },
+            ),
+            // Change the alignment / padding to move the button.
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 0, 20, 20),
+                child: BlocBuilder<AlertsCubit, AlertsState>(
+                  buildWhen: (previous, current) =>
+                      previous.status != current.status,
+                  builder: (context, state) =>
+                      state.status == AlertsStatus.ready
+                      ? FloatingActionButton(
+                          onPressed: () => _add(context),
+                          tooltip: 'Add alert',
+                          backgroundColor: _blue,
+                          foregroundColor: Colors.white,
+                          child: const Icon(Icons.add),
+                        )
+                      : const SizedBox.shrink(),
                 ),
-                ..._content(context, state),
-              ],
-            );
-          },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -199,8 +227,6 @@ class _AlertsView extends StatelessWidget {
                   onTap: () => _edit(context, alert),
                 ),
               ),
-          const SizedBox(height: 12),
-          _AddAlertButton(onTap: () => _add(context)),
         ];
     }
   }
@@ -324,13 +350,16 @@ class _AlertCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Notify when ${above ? 'above' : 'below'} ${formatRate(alert.targetRate)} ${alert.quote}',
+                      'Notify when ${above ? 'above' : 'below'} ${formatMoney(alert.targetRate, alert.quote)}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 14, color: _muted),
                     ),
-                    const SizedBox(height: 8),
-                    _StatusChip(alert.status),
+                    // Active is the normal state, so only the others are marked.
+                    if (alert.status != AlertStatus.active) ...[
+                      const SizedBox(height: 8),
+                      _StatusChip(alert.status),
+                    ],
                   ],
                 ),
               ),
@@ -372,85 +401,4 @@ class _StatusChip extends StatelessWidget {
       ),
     );
   }
-}
-
-class _AddAlertButton extends StatelessWidget {
-  const _AddAlertButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(26),
-      child: CustomPaint(
-        painter: _DashedBorderPainter(
-          color: _blue.withValues(alpha: 0.5),
-          radius: 26,
-        ),
-        child: const SizedBox(
-          height: 62,
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircleAvatar(
-                  radius: 17,
-                  backgroundColor: _blue,
-                  child: Icon(Icons.add, color: Colors.white, size: 22),
-                ),
-                SizedBox(width: 14),
-                Flexible(
-                  child: Text(
-                    'Add alert',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: _blue,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  const _DashedBorderPainter({required this.color, required this.radius});
-
-  final Color color;
-  final double radius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Offset.zero & size,
-          Radius.circular(radius),
-        ).deflate(1),
-      );
-    for (final PathMetric metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        canvas.drawPath(metric.extractPath(distance, distance + 10), paint);
-        distance += 18;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedBorderPainter old) =>
-      old.color != color || old.radius != radius;
 }

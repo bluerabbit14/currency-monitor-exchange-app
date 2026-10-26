@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/di/injection.dart';
+import '../../../../core/format/number_format.dart';
+import '../../../converter/domain/repositories/converter_repository.dart';
 import '../../../favourite/domain/entities/asset_item.dart';
 import '../../../favourite/presentation/widgets/asset_flag.dart';
 import '../../domain/entities/price_alert.dart';
@@ -62,9 +65,10 @@ const _muted = Color(0xFF8A8A93);
 const _green = Color(0xFF1FA463);
 const _red = Color(0xFFE5383B);
 
-/// Plain decimal text: "3", "3.67", "0.0045". Rejects anything else.
+/// Decimal text as the target field shows it: "3", "3.67", "1,234.5". Commas
+/// are thousands separators; anything else is rejected.
 double? parseTargetRate(String text) {
-  final value = double.tryParse(text.trim().replaceAll(',', '.'));
+  final value = double.tryParse(text.trim().replaceAll(',', ''));
   if (value == null || !value.isFinite || value <= 0) return null;
   return value;
 }
@@ -102,7 +106,17 @@ class _AlertEditorState extends State<_AlertEditor> {
   bool _busy = false;
   String? _error;
 
+  /// Latest price of the watched asset in the quote currency; null while it
+  /// loads or when it could not be fetched.
+  double? _livePrice;
+
+  /// Bumped per fetch so a slow answer for a previously picked asset is ignored.
+  int _priceRequest = 0;
+
   bool get _editing => widget.existing != null;
+
+  String? get _base =>
+      widget.existing?.base ?? widget.fixedBase ?? _asset?.symbol;
 
   /// The watched asset cannot be changed: editing, or started from a favorite.
   bool get _baseFixed => _editing || widget.fixedBase != null;
@@ -113,8 +127,22 @@ class _AlertEditorState extends State<_AlertEditor> {
     final existing = widget.existing;
     _condition = existing?.condition ?? AlertCondition.above;
     _price = TextEditingController(
-      text: existing == null ? '' : formatRate(existing.targetRate),
+      text: existing == null ? '' : groupRate(formatRate(existing.targetRate)),
     );
+    _loadPrice();
+  }
+
+  Future<void> _loadPrice() async {
+    final base = _base;
+    final request = ++_priceRequest;
+    setState(() => _livePrice = null);
+    if (base == null) return;
+    final result = await sl<ConverterRepository>().getRate(
+      from: base,
+      to: widget.quote,
+    );
+    if (!mounted || request != _priceRequest) return;
+    setState(() => _livePrice = result.fold((_) => null, (r) => r.rate));
   }
 
   @override
@@ -139,6 +167,7 @@ class _AlertEditorState extends State<_AlertEditor> {
         _asset = picked;
         _error = null;
       });
+      _loadPrice();
     }
   }
 
@@ -230,6 +259,9 @@ class _AlertEditorState extends State<_AlertEditor> {
               code: widget.existing?.base ?? widget.fixedBase ?? _asset?.symbol,
               name: widget.fixedName ?? _asset?.name,
               kind: widget.fixedKind ?? _asset?.kind ?? AssetKind.fiat,
+              price: _livePrice == null
+                  ? null
+                  : formatMoney(_livePrice!, widget.quote),
               onTap: _baseFixed || _busy ? null : _pickAsset,
             ),
             const SizedBox(height: 22),
@@ -328,6 +360,56 @@ class _AlertEditorState extends State<_AlertEditor> {
   }
 }
 
+/// [rate] (plain digits and an optional point) with thousands separators.
+String groupRate(String rate) {
+  final dot = rate.indexOf('.');
+  return dot < 0
+      ? groupDigits(rate)
+      : groupDigits(rate.substring(0, dot)) + rate.substring(dot);
+}
+
+/// Keeps the target field in the app's money format while typing: digits and
+/// one point, thousands commas in the whole part, at most 6 decimals.
+class RateInputFormatter extends TextInputFormatter {
+  const RateInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final raw = newValue.text;
+    final cursor = newValue.selection.baseOffset.clamp(0, raw.length);
+    final kept = StringBuffer();
+    var keptBeforeCursor = 0;
+    var seenDot = false;
+    var decimals = 0;
+    for (var i = 0; i < raw.length; i++) {
+      final ch = raw[i];
+      final isDigit = ch.codeUnitAt(0) >= 48 && ch.codeUnitAt(0) <= 57;
+      if (ch == '.' && !seenDot) {
+        seenDot = true;
+      } else if (!isDigit || (seenDot && ++decimals > 6)) {
+        continue;
+      }
+      kept.write(ch);
+      if (i < cursor) keptBeforeCursor++;
+    }
+    final text = groupRate(kept.toString());
+    // Keep the cursor after the same digits as before the commas moved.
+    var offset = 0;
+    var counted = 0;
+    while (offset < text.length && counted < keptBeforeCursor) {
+      if (text[offset] != ',') counted++;
+      offset++;
+    }
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: offset),
+    );
+  }
+}
+
 /// Trims trailing zeros: 3.6725, 90, 0.0045.
 String formatRate(double value) {
   final fixed = value.toStringAsFixed(6);
@@ -400,6 +482,7 @@ class _CurrencyRow extends StatelessWidget {
     required this.code,
     required this.name,
     required this.kind,
+    required this.price,
     required this.onTap,
   });
 
@@ -407,6 +490,9 @@ class _CurrencyRow extends StatelessWidget {
   final String? code;
   final String? name;
   final AssetKind kind;
+
+  /// The asset's latest price, already formatted; shown right of the name.
+  final String? price;
   final VoidCallback? onTap;
 
   @override
@@ -449,6 +535,18 @@ class _CurrencyRow extends StatelessWidget {
                   ),
                 ),
               ),
+              if (price != null) ...[
+                const SizedBox(width: 8),
+                Text(
+                  price!,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: _muted,
+                  ),
+                ),
+              ],
               if (!editing)
                 const Icon(
                   Icons.chevron_right_rounded,
@@ -557,8 +655,8 @@ class _PriceField extends StatelessWidget {
                 decimal: true,
               ),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                LengthLimitingTextInputFormatter(16),
+                const RateInputFormatter(),
+                LengthLimitingTextInputFormatter(24),
               ],
               style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
               decoration: const InputDecoration(
@@ -570,7 +668,7 @@ class _PriceField extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            quote,
+            currencyMark(quote),
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,

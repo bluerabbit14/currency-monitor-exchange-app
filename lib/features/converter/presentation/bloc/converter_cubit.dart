@@ -179,8 +179,12 @@ class ConverterCubit extends Cubit<ConverterState> {
       if (a.symbol != symbol) a,
   ]);
 
-  /// Empties the whole list.
-  Future<void> clear() => _setList(const []);
+  /// Resets the typed amount to 0; the rows and the active row stay.
+  void clear() {
+    if (state.expression.isEmpty) return;
+    emit(state.copyWith(expression: ''));
+    _persist();
+  }
 
   /// Pull-to-refresh: refetches every rate.
   Future<void> refresh() => _refreshRates(refresh: true);

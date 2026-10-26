@@ -144,13 +144,16 @@ void main() {
     },
   );
 
-  test('clear empties the list and is remembered', () async {
+  test('clear resets the typed amount but keeps the rows', () async {
     repository.saved = session(active: 'INR', expression: '5');
     await cubit.load();
-    await cubit.clear();
-    expect(cubit.state.assets, isEmpty);
-    expect(cubit.state.activeSymbol, isNull);
-    expect(repository.saved?.assets, isEmpty);
+    final symbols = [for (final a in cubit.state.assets) a.symbol];
+    cubit.clear();
+    expect(cubit.state.expression, '');
+    expect(cubit.state.activeSymbol, 'INR');
+    expect([for (final a in cubit.state.assets) a.symbol], symbols);
+    expect(repository.saved?.expression, '');
+    expect(repository.saved?.assets, isNotEmpty);
   });
 
   test('keys are ignored while the list is empty', () async {

@@ -280,7 +280,7 @@ void main() {
         find.text('Create an alert to get notifications about price changes'),
         findsOneWidget,
       );
-      expect(find.text('Add alert'), findsOneWidget);
+      expect(find.byTooltip('Add alert'), findsOneWidget);
     });
 
     testWidgets('lists the user alerts', (tester) async {
@@ -299,11 +299,12 @@ void main() {
 
       expect(find.text('No alerts'), findsNothing);
       expect(find.text('GBP / AED'), findsOneWidget);
-      expect(find.text('Notify when below 4.6 AED'), findsOneWidget);
+      expect(find.text('Notify when below 4.60 AED'), findsOneWidget);
       expect(find.text('Triggered'), findsOneWidget);
       expect(find.text('EUR / AED'), findsOneWidget);
-      expect(find.text('Notify when above 4.1 AED'), findsOneWidget);
-      expect(find.text('Active'), findsOneWidget);
+      expect(find.text('Notify when above 4.10 AED'), findsOneWidget);
+      // Active is the normal state and carries no label.
+      expect(find.text('Active'), findsNothing);
       // Newest first.
       expect(
         tester.getTopLeft(find.text('GBP / AED')).dy,
@@ -339,7 +340,7 @@ void main() {
       );
       await openAlertsPage(tester);
 
-      await tester.tap(find.text('Add alert'));
+      await tester.tap(find.byTooltip('Add alert'));
       await tester.pumpAndSettle();
 
       expect(find.byType(BottomSheet), findsNothing);
@@ -353,7 +354,7 @@ void main() {
   group('creating an alert', () {
     Future<void> openCreate(WidgetTester tester) async {
       await openAlertsPage(tester);
-      await tester.tap(find.text('Add alert'));
+      await tester.tap(find.byTooltip('Add alert'));
       await tester.pumpAndSettle();
     }
 
@@ -420,7 +421,7 @@ void main() {
       await chooseEuro(tester);
       await tester.tap(inSheet(find.text('below')));
       await tester.pump();
-      await tester.enterText(inSheet(find.byType(TextField)), '3,95');
+      await tester.enterText(inSheet(find.byType(TextField)), '3.95');
       await tester.pump();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Create Alert'));
@@ -532,7 +533,7 @@ void main() {
         {'id': 'a1', 'condition': null, 'targetRate': 4.5},
       ]);
       expect(find.byType(BottomSheet), findsNothing);
-      expect(find.text('Notify when above 4.5 AED'), findsOneWidget);
+      expect(find.text('Notify when above 4.50 AED'), findsOneWidget);
     });
 
     testWidgets('changing the condition is sent on its own', (tester) async {
@@ -546,7 +547,7 @@ void main() {
       expect(alerts.updated, [
         {'id': 'a1', 'condition': AlertCondition.below, 'targetRate': null},
       ]);
-      expect(find.text('Notify when below 4 AED'), findsOneWidget);
+      expect(find.text('Notify when below 4.00 AED'), findsOneWidget);
     });
 
     testWidgets('a failed update keeps the sheet open with the error', (

@@ -19,11 +19,16 @@ String formatChange(double value) {
   return value > 0 ? '+$magnitude' : '-$magnitude';
 }
 
-/// Money text in [currencyCode], as people write it: a symbol or code, thousands
-/// separators and a sensible number of decimals.
+/// Money text in [currencyCode]: thousands separators, a sensible number of
+/// decimals and the currency mark (symbol, else ISO code) after the number.
 ///
-/// `formatMoney(3.67, 'USD')` is `$3.67`, `formatMoney(250000.5, 'AED')` is
-/// `AED 250,000.50`, `formatMoney(0.038306, 'EUR')` is `€0.038306`.
+/// CORE RULE: every price, rate, change or target the app shows goes through
+/// this file (formatMoney, formatMoneyChange, formatAmountWithSymbol) so it is
+/// grouped with commas and ends with its currency mark. Never print a raw
+/// double or add a symbol by hand in a widget.
+///
+/// `formatMoney(3.67, 'USD')` is `3.67 $`, `formatMoney(250000.5, 'AED')` is
+/// `250,000.50 AED`, `formatMoney(0.038306, 'EUR')` is `0.038306 €`.
 ///
 /// Decimals depend on the size: 2 from 1,000 up, up to 4 from 1 up, up to 6
 /// below 1 (a rate like 0.038306 would be useless rounded to 2). Trailing zeros
@@ -34,8 +39,8 @@ String formatMoney(double value, String currencyCode) {
   return negative ? '-$text' : text;
 }
 
-/// Signed change in [currencyCode] (`+$0.02`, `-AED 1.50`); a move too small
-/// to show counts as no change (`$0.00`, no sign).
+/// Signed change in [currencyCode] (`+0.02 $`, `-1.50 AED`); a move too small
+/// to show counts as no change (`0.00 $`, no sign).
 String formatMoneyChange(double value, String currencyCode) {
   final magnitude = _moneyText(value.abs(), currencyCode);
   if (formatPrice(value.abs()) == '0.00') {
@@ -45,7 +50,6 @@ String formatMoneyChange(double value, String currencyCode) {
 }
 
 String _moneyText(double value, String currencyCode) {
-  final code = currencyCode.toUpperCase();
   final maxDecimals = value >= 1000
       ? 2
       : value >= 1
@@ -54,12 +58,7 @@ String _moneyText(double value, String currencyCode) {
   final number = NumberFormat.decimalPattern('en_US')
     ..minimumFractionDigits = 2
     ..maximumFractionDigits = maxDecimals;
-  final symbol = _symbols[code];
-  // A well-known symbol sits against the number; any other currency is
-  // written with its ISO code and a space (AED 3.67).
-  return symbol != null
-      ? '$symbol${number.format(value)}'
-      : '$code ${number.format(value)}';
+  return '${number.format(value)} ${currencyMark(currencyCode)}';
 }
 
 /// Symbols people know at a glance. Everything else uses its ISO code, since
@@ -96,12 +95,13 @@ String currencyMark(String currencyCode) {
 /// (`1234+5678.5` becomes `1,234+5,678.5`); decimals and operators stay as typed.
 String groupExpression(String expression) => expression.replaceAllMapped(
   RegExp(r'(\d+)(\.\d*)?'),
-  (m) =>
-      m[1]!.replaceAllMapped(
-        RegExp(r'\B(?=(\d{3})+(?!\d))'),
-        (_) => ',',
-      ) +
-      (m[2] ?? ''),
+  (m) => groupDigits(m[1]!) + (m[2] ?? ''),
+);
+
+/// Thousands separators in a run of digits (`1234567` becomes `1,234,567`).
+String groupDigits(String digits) => digits.replaceAllMapped(
+  RegExp(r'\B(?=(\d{3})+(?!\d))'),
+  (_) => ',',
 );
 
 /// A plain amount with thousands separators and no currency mark, as the

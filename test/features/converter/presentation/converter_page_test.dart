@@ -45,11 +45,12 @@ void main() {
     await press(tester, '+');
     await press(tester, '3');
     // The active row shows what was typed; the fake prices every pair at 1.
-    expect(find.text('12+3'), findsOneWidget);
-    expect(find.text('15'), findsOneWidget);
+    expect(find.text('12+3 ₹'), findsOneWidget);
+    expect(find.text('15 \$'), findsOneWidget);
 
     await press(tester, '=');
-    expect(find.text('15'), findsNWidgets(2));
+    expect(find.text('15 ₹'), findsOneWidget);
+    expect(find.text('15 \$'), findsOneWidget);
     expect(converter.session?.expression, '15');
   });
 
@@ -61,17 +62,24 @@ void main() {
     await press(tester, '1');
     expect(converter.session?.activeSymbol, 'USD');
     // 7 carried over to USD, then a 1 typed after it.
-    expect(find.text('71'), findsNWidgets(2));
+    expect(find.text('71 ₹'), findsOneWidget);
+    expect(find.text('71 \$'), findsOneWidget);
   });
 
-  testWidgets('Clear empties the list', (tester) async {
+  testWidgets('Clear resets the typed amount and keeps the rows', (
+    tester,
+  ) async {
     await open(tester);
+    await press(tester, '7');
+    expect(find.text('7 ₹'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.more_horiz));
     await tester.pumpAndSettle();
-    expect(find.text('Add Currency'), findsOneWidget);
     await tester.tap(find.text('Clear'));
     await tester.pumpAndSettle();
-    expect(find.text('No currencies yet'), findsOneWidget);
-    expect(converter.session?.assets, isEmpty);
+    expect(find.text('0 ₹'), findsOneWidget);
+    expect(find.text('INR'), findsOneWidget);
+    expect(find.text('USD'), findsOneWidget);
+    expect(converter.session?.expression, '');
+    expect(converter.session?.assets, isNotEmpty);
   });
 }

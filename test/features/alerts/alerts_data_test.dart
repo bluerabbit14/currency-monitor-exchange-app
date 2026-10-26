@@ -6,6 +6,7 @@ import 'package:currency/features/alerts/presentation/widgets/alert_editor_sheet
 import 'package:currency/features/notifications/data/datasources/notification_remote_data_source.dart';
 import 'package:currency/features/notifications/data/repositories/notification_repository_impl.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/auth_fakes.dart';
@@ -28,6 +29,7 @@ Map<String, dynamic> alertJson({
 };
 
 void main() {
+  rateInputFormatterTests();
   late FakeAdapter adapter;
   late AlertRepositoryImpl repo;
 
@@ -284,7 +286,7 @@ void main() {
     test('accepts positive decimals with . or ,', () {
       expect(parseTargetRate('3.6725'), 3.6725);
       expect(parseTargetRate(' 90 '), 90);
-      expect(parseTargetRate('3,67'), 3.67);
+      expect(parseTargetRate('1,234.5'), 1234.5);
       expect(parseTargetRate('.5'), 0.5);
     });
 
@@ -299,6 +301,36 @@ void main() {
       expect(formatRate(90), '90');
       expect(formatRate(4.5), '4.5');
       expect(formatRate(0.0045), '0.0045');
+    });
+  });
+}
+
+void rateInputFormatterTests() {
+  TextEditingValue type(String text, [int? cursor]) =>
+      const RateInputFormatter().formatEditUpdate(
+        TextEditingValue.empty,
+        TextEditingValue(
+          text: text,
+          selection: TextSelection.collapsed(offset: cursor ?? text.length),
+        ),
+      );
+
+  group('RateInputFormatter', () {
+    test('groups the whole part while typing', () {
+      expect(type('1234567').text, '1,234,567');
+      expect(type('1234.5678').text, '1,234.5678');
+      expect(type('1,234').text, '1,234');
+    });
+
+    test('keeps one point and at most 6 decimals', () {
+      expect(type('1.2.3').text, '1.23');
+      expect(type('0.12345678').text, '0.123456');
+      expect(type('abc').text, '');
+    });
+
+    test('keeps the cursor after the same digits', () {
+      expect(type('1234', 4).selection.baseOffset, 5);
+      expect(type('1234', 1).selection.baseOffset, 1);
     });
   });
 }

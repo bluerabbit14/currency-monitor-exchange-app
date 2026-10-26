@@ -52,7 +52,7 @@ void main() {
     await open(tester);
 
     expect(find.text('Euro'), findsOneWidget);
-    expect(find.text('AED 4.20'), findsOneWidget);
+    expect(find.text('4.20 AED'), findsOneWidget);
     for (final label in ['10m', '1H', '1D', '1W', '1M']) {
       expect(find.text(label), findsOneWidget);
     }

@@ -11,7 +11,6 @@ import 'add_currency_page.dart';
 
 const _background = Color(0xFFF1F1F6);
 const _muted = Color(0xFF8A8A93);
-const _red = Color(0xFFFF3B30);
 
 class ConverterPage extends StatelessWidget {
   const ConverterPage({super.key});
@@ -69,7 +68,7 @@ class _ConverterView extends StatelessWidget {
                         child: _Header(
                           updatedAt: state.updatedAt,
                           onAdd: () => _add(context),
-                          onClear: state.assets.isEmpty ? null : cubit.clear,
+                          onClear: state.expression.isEmpty ? null : cubit.clear,
                         ),
                       ),
                     ),
@@ -214,8 +213,8 @@ class _Header extends StatelessWidget {
                 value: 'clear',
                 enabled: onClear != null,
                 child: const ListTile(
-                  leading: Icon(Icons.delete_outline, color: _red),
-                  title: Text('Clear', style: TextStyle(color: _red)),
+                  leading: Icon(Icons.refresh_rounded),
+                  title: Text('Clear'),
                 ),
               ),
             ],

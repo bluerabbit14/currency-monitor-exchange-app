@@ -72,10 +72,10 @@ void main() {
   ) async {
     await open(tester);
 
-    expect(find.text('AED 0.038306'), findsOneWidget);
-    expect(find.text('+AED 0.000018'), findsOneWidget);
-    expect(find.text('AED 3.67'), findsOneWidget);
-    expect(find.text('-AED 0.004105'), findsOneWidget);
+    expect(find.text('0.038306 AED'), findsOneWidget);
+    expect(find.text('+0.000018 AED'), findsOneWidget);
+    expect(find.text('3.67 AED'), findsOneWidget);
+    expect(find.text('-0.004105 AED'), findsOneWidget);
     expect(favorites.quoteRequests, contains('USD/AED'));
   });
 
@@ -87,13 +87,13 @@ void main() {
     await tester.tap(find.text('Crypto'));
     await tester.pumpAndSettle();
     expect(find.text('Bitcoin'), findsOneWidget);
-    expect(find.text('AED 250,000.50'), findsOneWidget);
+    expect(find.text('250,000.50 AED'), findsOneWidget);
     expect(find.text('Euro'), findsNothing);
 
     await tester.tap(find.text('Commodities'));
     await tester.pumpAndSettle();
     expect(find.text('Gold'), findsOneWidget);
-    expect(find.text('-AED 15.00'), findsOneWidget);
+    expect(find.text('-15.00 AED'), findsOneWidget);
     expect(find.text('Bitcoin'), findsNothing);
   });
 
@@ -139,7 +139,7 @@ void main() {
     await open(tester);
 
     expect(find.text('—'), findsOneWidget);
-    expect(find.text('AED 3.67'), findsOneWidget);
+    expect(find.text('3.67 AED'), findsOneWidget);
   });
 
   testWidgets('a failed load offers Retry', (tester) async {
@@ -159,7 +159,7 @@ void main() {
     await open(tester);
 
     expect(favorites.quoteRequests, contains('INR/USD'));
-    expect(find.text(r'$3.67'), findsOneWidget);
+    expect(find.text('3.67 \$'), findsOneWidget);
   });
 
   for (final size in const [Size(320, 568), Size(800, 360)]) {
